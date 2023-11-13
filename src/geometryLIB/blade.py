@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from   src.geometryLIB import camberline, profileLine
 
 class Blade():
+    '''
+    Blade class. This class is built using the **Kulfan formulation** :cite:p:`kulfan2008universal`.
+    '''
 
     def __init__(
             self, 

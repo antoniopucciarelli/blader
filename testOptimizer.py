@@ -2,16 +2,21 @@ import numpy as np
 from   src.geometryLIB import optimizer
 
 def main():
+    # file name allocation
+    fileName = 'coords.dat'
+    fileName = 'airfoil1.dat'
     
-    with open(file='airfoil1.dat', mode='r') as f:
+    with open(file=fileName, mode='r') as f:
         data = np.loadtxt(f)
+        data = np.array(data)
 
-    Nsuct  = 4
-    Npress = 4
+    Nsuct  = 5
+    Npress = 5
     nMax   = 4
     flip   = False
 
-    blade, _, _ = optimizer.optimizer(data, Nsuct, Npress, LEradius=2.5E-2, method='Nelder-Mead', flip=flip, nMax=nMax)
+    # data[:, 1] = - data[:, 1]
+    blade, _, _ = optimizer.optimizeBlade(data, Nsuct, Npress, LEradius=2.5E-2, method='Nelder-Mead', flip=flip, nMax=nMax)
 
     # blade.save('blade1.txt')
 
