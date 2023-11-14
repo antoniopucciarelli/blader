@@ -157,7 +157,10 @@ class Camberline():
         else:
             self.n = (np.tan(np.deg2rad(self.metalOut)) + np.tan(np.deg2rad(self.metalIn))) / np.tan(np.deg2rad(self.stagger))
 
-        if self.n < 0: 
+        if self.n < 0:
+            print('>>> STAGGER   = {0:.2E}'.format(self.stagger))
+            print('>>> METAL IN  = {0:.2E}'.format(self.metalIn))
+            print('>>> METAL OUT = {0:.2E}'.format(self.metalOut))
             raise ValueError('The camberline cannot be computed: ``self.n`` = {self.n} <= 0')
 
     def __a(self) -> None:

@@ -177,13 +177,18 @@ class Blade():
         self.__pLine.compute(self.__camberline)
 
     def coordinate(self) -> tuple: 
+        '''
+        This function extracts the blade coordinates from the blade object into a vector style representation.
+        '''
 
         XPS = self.__pLine.X 
         YPS = self.__pLine.Y 
         XSS = self.__sLine.X 
         YSS = self.__sLine.Y 
+        XCL = self.__camberline.X
+        YCL = self.__camberline.Y
 
-        return XPS, YPS, XSS, YSS
+        return XPS, YPS, XSS, YSS, XCL, YCL
 
     def rotate(
             self, 
@@ -273,18 +278,36 @@ class Blade():
 
     def plot(
             self, 
-            ax:         plt.Axes, 
-            Ccolor:     str   = 'k', 
-            SScolor:    str   = 'r', 
-            PScolor:    str   = 'b',
-            normalized: bool  = True, 
-            number:     int   = 2,
+            ax:         plt.Axes = None, 
+            Ccolor:     str      = 'k', 
+            SScolor:    str      = 'r', 
+            PScolor:    str      = 'b',
+            normalized: bool     = True, 
+            number:     int      = 2,
         ) -> None:
         '''
         This function plots the blade. 
         '''
 
+        # checking axes
+        if not isinstance(ax, plt.Axes):
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            newAxes = True 
+        else:
+            newAxes = False
+
         # plotting data
         self.__camberline.plot(ax=ax, normalized=normalized, color=Ccolor, pitch=self.__pitch, number=number)
         self.__sLine.plot(ax=ax, color=SScolor, plotInZero=self.__origin, pitch=self.__pitch, number=number, normalized=normalized)
         self.__pLine.plot(ax=ax, color=PScolor, plotInZero=self.__origin, pitch=self.__pitch, number=number, normalized=normalized)
+
+        # axes decoration
+        if newAxes:
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_title('Blade')
+            ax.grid(visible=True, linestyle='dotted')
+            ax.set_aspect('equal')
+            plt.tight_layout()
+            plt.show()
