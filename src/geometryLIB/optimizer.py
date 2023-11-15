@@ -279,7 +279,7 @@ def rotate(data: list | np.ndarray, theta: float, resize: bool = False) -> np.nd
     for ii, coord in enumerate(data):
         coord = np.matmul(rotMatrix, coord) 
         if resize:
-            data[ii, :] = coord / cos
+            data[ii, :] = coord * cos
         else:
             data[ii, :] = coord
 
@@ -984,7 +984,8 @@ def optimizeCamberline(upperLine: interpolate.interp1d, lowerLine: interpolate.i
 
     # scaling data into [0, 1] interval
     xCamberline = np.linspace(0, 1, nPoints)
-    yCamberline = yCamberline / (1.0 - LEpos[0]) - LEpos[1]
+    yCamberline = yCamberline - yCamberline[0]
+    yCamberline = yCamberline / (1.0 - LEpos[0]) 
 
     # optimization boundaries generation 
     lowerBounds = [] 
@@ -1061,11 +1062,11 @@ def optimizeBlade(
         data:      list | np.ndarray, 
         Nsuct:     int, 
         Npress:    int, 
+        angle:     float = 0.0,
         LEradius:  float = 2.5e-2, 
         nPoints:   int   = 100, 
         inletPos:  int   = 3, 
-        outletPos: int   = 3, 
-        theta:     float | list = [10, 15], 
+        outletPos: int   = 3,  
         method:    str   = 'Nelder-Mead',
         nMax:      int   = 2, 
         tol:       float = 2.5E-5,
@@ -1097,74 +1098,70 @@ def optimizeBlade(
     # allocating data 
     minCost = np.Inf
     
-    # angle allocation
-    theta = [5]
+    if angle != 0:
+       __data = rotate(__data, angle, resize=True)
 
-    for angle in theta:
+    # intepolating data 
+    upperLine, lowerLine, upperData, lowerData, upperChord, lowerChord = interpolateData(__data)
+
+    # computing wedge angle 
+    _, _, _, wedgeAngle = computeGuess(data=__data, upperData=upperData, lowerData=lowerData, inletPos=inletPos, outletPos=outletPos)    
+
+    # leading edge position
+    xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, plot=False)
+
+    # camberline approximation
+    stagger, metalInlet, metalOutlet, yCamberlineOptimized = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=False)
+
+    # trailing edge radius computation 
+    TEradius = bladeTEradius(data=__data, chord=axialChord)
+
+    # profile line 
+    Asuct  = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((Nsuct  - 3,)), [0.15]])
+    Apress = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((Npress - 3,)), [0.15]])
+
+    # setting up initial guess
+    x = [
+        stagger,
+        metalInlet,
+        metalOutlet, 
+        LEradius
+    ] 
+
+    x = np.concatenate((x, Asuct, Apress, [wedgeAngle]))
+    print('x = ', x)
+
+    # arguments generation
+    args = (
+        Nsuct, 
+        Npress,
+        upperLine,
+        lowerLine,
+        TEradius,
+        nPoints
+    )
+
+    # boundaries generation    
+    bounds = boundsGenerator(stagger=stagger, metalInlet=metalInlet, metalOutlet=metalOutlet, Nsuct=Nsuct, Npress=Npress)
+
+    # optimization using Nelder-Mead method
+    cost = bladeFunc(x, Nsuct, Npress, upperLine, lowerLine, TEradius, nPoints)
+    print('cost = ', cost)
+    # exit()
+
+    counter = 0
+    while cost > tol and counter < nMax: 
+        # optimizing blade
+        res = optimize.minimize(fun=bladeFunc, x0=x, args=args, method=method, bounds=bounds)
         
-        __data = rotate(__data, angle)
-
-        # intepolating data 
-        upperLine, lowerLine, upperData, lowerData, upperChord, lowerChord = interpolateData(__data)
-
-        # computing wedge angle 
-        _, _, _, wedgeAngle = computeGuess(data=__data, upperData=upperData, lowerData=lowerData, inletPos=inletPos, outletPos=outletPos)    
-
-        # leading edge position
-        xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, plot=True)
-
-        # camberline approximation
-        stagger, metalInlet, metalOutlet, yCamberlineOptimized = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=True)
-
-        # trailing edge radius computation 
-        TEradius = bladeTEradius(data=__data, chord=axialChord)
-
-        # profile line 
-        Asuct  = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((Nsuct  - 3,)), [0.15]])
-        Apress = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((Npress - 3,)), [0.15]])
-
-        # setting up initial guess
-        x = [
-            stagger,
-            metalInlet,
-            metalOutlet, 
-            LEradius
-        ] 
-
-        x = np.concatenate((x, Asuct, Apress, [wedgeAngle]))
-        print('x = ', x)
-
-        # arguments generation
-        args = (
-            Nsuct, 
-            Npress,
-            upperLine,
-            lowerLine,
-            TEradius,
-            nPoints
-        )
-
-        # boundaries generation    
-        bounds = boundsGenerator(stagger=stagger, metalInlet=metalInlet, metalOutlet=metalOutlet, Nsuct=Nsuct, Npress=Npress)
-
-        # optimization using Nelder-Mead method
+        # allocating data
+        x = res.x
+        
+        # getting final cost
         cost = bladeFunc(x, Nsuct, Npress, upperLine, lowerLine, TEradius, nPoints)
-        print('cost = ', cost)
-        # exit()
-
-        counter = 0
-        while cost > tol and counter < nMax: 
-            # optimizing blade
-            res = optimize.minimize(fun=bladeFunc, x0=x, args=args, method=method, bounds=bounds)
-            
-            # allocating data
-            x = res.x
-            
-            # getting final cost
-            cost = bladeFunc(x, Nsuct, Npress, upperLine, lowerLine, TEradius, nPoints)
-            
-            # updating counter
-            counter = counter + 1
+        
+        # updating counter
+        counter = counter + 1
 
         # allocating data
         stagger, metalIn, metalOut, LEradius, Asuct, Apress, wedgeAngle = dataExtraction(x=res.x, Nsuct=Nsuct, Npress=Npress)
@@ -1180,9 +1177,6 @@ def optimizeBlade(
             
             # printing data
             print('Kulfan Parameters: {0}'.format(np.array2string(res.x, precision=2)))
-
-        if minCost < tol:
-            break
     
     # setting up results value
     xVal = res.x

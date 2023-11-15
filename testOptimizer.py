@@ -3,13 +3,14 @@ from   src.geometryLIB import optimizer
 
 def main():
     # file name allocation
+    fileName = 'airfoil1.dat'
     fileName = 'coords.dat'
-    fileName = 'airfoil.dat'
     
     with open(file=fileName, mode='r') as f:
         data = np.loadtxt(f)
         data = np.array(data)
 
+    angle  = 0
     Nsuct  = 4
     Npress = 4
     nMax   = 4
@@ -17,7 +18,7 @@ def main():
     nPoints = 120
 
     # data[:, 1] = - data[:, 1]
-    blade, _, _ = optimizer.optimizeBlade(data, Nsuct, Npress, LEradius=2.5E-2, method='Nelder-Mead', flip=flip, nMax=nMax, plot=True, nPoints=nPoints)
+    blade, _, _ = optimizer.optimizeBlade(data, Nsuct, Npress, angle=angle, LEradius=2.5E-2, method='Nelder-Mead', flip=flip, nMax=nMax, plot=True, nPoints=nPoints)
 
     # blade.save('blade1.txt')
 
