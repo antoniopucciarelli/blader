@@ -3,15 +3,15 @@ from   src.geometryLIB import optimizer
 
 def main():
     # file name allocation
-    fileName = 'airfoil1.dat'
     fileName = 'coords.dat'
+    fileName = 'airfoil.dat'
     
     with open(file=fileName, mode='r') as f:
         data = np.loadtxt(f)
         data = np.array(data)
 
-    Nsuct  = 10
-    Npress = 10
+    Nsuct  = 4
+    Npress = 4
     nMax   = 4
     flip   = False
     nPoints = 120
