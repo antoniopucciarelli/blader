@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import numpy            as     np 
+import numpy              as     np 
 from   geometryLIB.reader import ReadUserInput
 
 def readData(fileName: str) -> list:

@@ -571,6 +571,7 @@ class Camberline():
 
         return len(xVec)
 
+    # rotating coordinates
     def rotate(self, theta: float | int) -> tuple:
         '''
         This function rotates the profile line coordinates by a theta angle (in degrees).

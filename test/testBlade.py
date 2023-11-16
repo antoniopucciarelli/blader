@@ -28,11 +28,6 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
 
-    # plotting data
-    # blade.plot(ax, normalized=normalized, number=number)
-
-    # blade.update(stagger=40)
-
     blade.plot(ax, normalized=normalized, number=number)
 
     blade.save('blade.txt')

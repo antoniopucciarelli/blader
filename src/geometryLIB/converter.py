@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-import matplotlib.pyplot     as     plt 
-import numpy                 as     np 
-from   scipy                 import optimize
+import matplotlib.pyplot       as     plt 
+import numpy                   as     np 
+from   scipy                   import optimize
 from   geometryLIB             import camberline 
 from   geometryLIB             import profileLine
 from   geometryLIB.profileLine import Side 

@@ -1,12 +1,13 @@
+import os
 import numpy as np
-from   src.geometryLIB import optimizer
+from   geometryLIB import optimizer
 
 def main():
     # file name allocation
     fileName = 'airfoil.dat'
     fileName = 'coords.dat'
     
-    with open(file=fileName, mode='r') as f:
+    with open(file=os.path.join(['../containter/', fileName]), mode='r') as f:
         data = np.loadtxt(f)
         data = np.array(data)
 

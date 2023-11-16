@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import time 
-import numpy          as     np 
-from   matplotlib     import pyplot as plt 
-from   enum           import Enum, auto 
-from   src.geometryLIB.camberline     import Camberline
-from   scipy.optimize import bisect
+import numpy                  as     np 
+from   matplotlib             import pyplot as plt 
+from   enum                   import Enum, auto 
+from   scipy.optimize         import bisect
+from   geometryLIB.camberline import Camberline
 
 class Side(Enum):
     '''

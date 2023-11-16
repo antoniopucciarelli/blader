@@ -1,12 +1,9 @@
-import numpy                      as     np 
-import matplotlib.pyplot          as     plt 
-from   scipy                      import misc
-from   scipy                      import integrate
-from   scipy                      import interpolate
-from   scipy                      import optimize
-from   scipy.optimize             import Bounds    
-from   src.geometryLIB.blade      import Blade 
-from   src.geometryLIB.camberline import Camberline
+import numpy                  as     np 
+import matplotlib.pyplot      as     plt 
+from   scipy                  import misc, integrate, interpolate, optimize 
+from   scipy.optimize         import Bounds    
+from   geometryLIB.blade      import Blade 
+from   geometryLIB.camberline import Camberline
 
 def chebyschev(start: float, end: float, nPoints: int):
     
@@ -1282,7 +1279,7 @@ def optimizeBlade(
         ax = fig.add_subplot(1,1,1)
 
         # getting profile line for plotting 
-        x_ = np.linspace(0, 1, 400)
+        x_ = chebyschev(0, 1, 300)
 
         # plotting optimized camberline from data
         ax.plot(np.linspace(0, 1, len(yCamberlineOptimized)), yCamberlineOptimized, 'k--', linewidth=3, label='OPTMIZATION.CAMBERLINE')

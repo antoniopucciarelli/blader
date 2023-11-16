@@ -1,7 +1,6 @@
-import json
 import numpy as np 
 import matplotlib.pyplot as plt 
-from   src.geometryLIB import camberline, profileLine
+from   geometryLIB import camberline, profileLine
 
 class Blade():
     '''

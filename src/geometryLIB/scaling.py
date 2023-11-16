@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import numpy      as     np   
-from   matplotlib import pyplot as plt 
-from   geometryLIB  import camberline
-from   geometryLIB  import profileLine 
+import numpy                   as     np   
+from   matplotlib              import pyplot as plt 
+from   geometryLIB             import camberline
+from   geometryLIB             import profileLine 
 from   geometryLIB.profileLine import Side
 
 def linearSolver(
