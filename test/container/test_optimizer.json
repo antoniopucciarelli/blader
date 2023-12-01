@@ -1,0 +1,24 @@
+{
+    "fileName": [
+        "naca9430.dat"
+    ],
+    "ok": [
+        "upsideDown.dat",
+        "symmetric.dat",
+        "kulfanBased.dat"
+    ],
+    "N": {
+        "SS": [
+            4,
+            5,
+            10
+        ],
+        "PS": [
+            4,
+            5,
+            10
+        ]
+    },
+    "nMax": 4,
+    "nPoints": 100
+}

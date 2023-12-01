@@ -1,0 +1,37 @@
+{
+    "staggerAngle": 
+        { 
+            "min": 20,
+            "max": 40,
+            "n": 3
+        },
+    "metalInAngle": 
+        { 
+            "min": -50,
+            "max": -30,
+            "n": 3
+        },
+    "metalOutAngle":
+        { 
+            "min": 65,
+            "max": 73,
+            "n": 3
+        },
+    "chord": 
+        {
+            "min": 0.5,
+            "max": 2.0,
+            "n": 2
+        },
+    "pitch": 
+        {
+            "min": 0.6,
+            "max": 1.5,
+            "n": 2
+        },
+    "chebyschev": true, 
+    "origin": true, 
+    "number": 2, 
+    "vector": true, 
+    "normalized": false
+}
