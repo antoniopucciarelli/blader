@@ -238,6 +238,48 @@ class Blade():
 
         return x_camberline, y_camberline, X_camberline, Y_camberline, x_pLine, y_pLine, X_pLine, Y_pLine, x_sLine, y_sLine, X_sLine, Y_sLine
 
+    def scale(
+            self, 
+            Nsuct:      int, 
+            Npress:     int, 
+            plot:       bool = False
+        ) -> None:
+        '''
+        This function scales the blade geometry.
+
+        Parameters
+        ----------
+        `Nsuct`: int 
+            new blade DOF for the suction side of the blade 
+        `Npress`: int 
+            new blade DOF for the suction side of the blade
+        `nPoints`: int 
+            suction side and pressure side discretization points
+        `wedgeAngle`: float 
+            wedge angle of the blade 
+        `ax`: plt.Axes 
+            matplotlib axes object
+        '''
+
+        # scaling data 
+        Asuct  = self.__sLine.scale(N=Nsuct,  camberline=self.__camberline, overwrite=False)
+        Apress = self.__pLine.scale(N=Npress, camberline=self.__camberline, overwrite=False) 
+
+        # computing leading edge radius 
+        LEradius = Asuct[0]**2 / 2
+
+        # data allocation
+        self.update(Asuct=Asuct, Apress=Apress) 
+
+        if plot:
+            # printing out data 
+            self.printout()
+
+            # plotting data 
+            self.plot()
+
+        return Asuct, Apress, LEradius
+
     def save(self, fileName: str) -> None:
         '''
         This function saves the normalized blade properties inside a text file. 

@@ -92,8 +92,6 @@ def bladeOptimization(
     sLine = profileLine.ProfileLine(N=Asuct.shape[0], A=Asuct, wedgeAngle=wedgeAngle, position=Side.SS, TEradius=TEradius)
     pLine = profileLine.ProfileLine(N=Apress.shape[0], A=Apress, wedgeAngle=wedgeAngle, position=Side.PS, TEradius=TEradius)
 
-
-
 def kulfanConverter(
         Nsuct:         int, 
         Npress:        int,

@@ -1,3 +1,4 @@
+import time 
 import numpy                  as     np 
 import matplotlib.pyplot      as     plt 
 from   scipy                  import misc, integrate, interpolate, optimize 
@@ -316,7 +317,7 @@ def rotate(data: list | np.ndarray, theta: float, resize: bool = False) -> np.nd
     for ii, coord in enumerate(data):
         coord = np.matmul(rotMatrix, coord) 
         if resize:
-            data[ii, :] = coord * cos
+            data[ii, :] = coord / cos
         else:
             data[ii, :] = coord
 
@@ -535,7 +536,8 @@ def bladeDataExtraction(
 def camberlineFunc(
         x:           list | np.ndarray, 
         yCamberline: list | np.ndarray, 
-        nPoints:     int
+        nPoints:     int,
+        printout:    bool = False
     ) -> float: 
     '''
     This function computes the error between a set of coordinates and a parametrized camberline.
@@ -569,7 +571,8 @@ def camberlineFunc(
     except:
         RMSE = np.NAN
 
-    print('>>> RMSE = {0:.2E}'.format(RMSE))
+    if printout:
+        print('>>> RMSE = {0:.2E}'.format(RMSE))
 
     return RMSE
 
@@ -580,7 +583,8 @@ def bladeFunc(
         upperLine:   interpolate.interp1d,
         lowerLine:   interpolate.interp1d,
         TEradius:    float,
-        nPoints:     int  = 200
+        nPoints:     int  = 200,
+        printout:    bool = False
     ) -> float:
 
     # getting data 
@@ -663,7 +667,8 @@ def bladeFunc(
     except:
         RMSE = np.NAN
 
-    print("RMSE = {0:.3E}".format(RMSE))
+    if printout:
+        print("RMSE = {0:.3E}".format(RMSE))
 
     return RMSE
 
@@ -679,7 +684,7 @@ def boundsGenerator(
         metalInBound:        list        = [-60, -1E-1],
         metalOutBound:       list        = [1E-1, 80],
         Abounds:             list        = [-1E-1, 1.4],
-        LEradiusBounds:      list        = [1E-2, 0.3],
+        LEradiusBounds:      list        = [1E-3, 0.3],
         wedgeAngleMax:       int | float = 40
     ) -> Bounds:
     '''
@@ -733,11 +738,6 @@ def boundsGenerator(
     # wedge angle bounds
     lowerBounds.append(5)
     upperBounds.append(np.abs(wedgeAngleMax))
-
-    # print(lowerBounds)
-    # print(upperBounds)
-
-    # exit()
     
     # scipy bounds object generation 
     bounds = Bounds(lowerBounds, upperBounds)
@@ -1052,7 +1052,7 @@ def optimizeCamberline(
         lowerChord: float = 1, 
         nPoints:    int   = 100, 
         plot:       bool  = False
-    ) -> tuple[float, float, float, np.ndarray]:
+    ) -> tuple[float, float, float, np.ndarray, float]:
     '''
     This function optimizes find a suitable camberline parametrizatio for the blade.
     '''
@@ -1099,15 +1099,19 @@ def optimizeCamberline(
     # optimization
     res = optimize.minimize(fun=camberlineFunc, x0=[30, -10, 40], args=args, method='Nelder-Mead', bounds=bounds)
 
+    # cost allocation 
+    camberlineCost = camberlineFunc(x=res.x, yCamberline=yCamberline, nPoints=nPoints)
+
     # data allocation
     stagger     = res.x[0]
     metalInlet  = res.x[1]
     metalOutlet = res.x[2]
 
     # camberline properties printout
-    print('>>> STAGGER      = {0:+.3E}'.format(stagger))
-    print('>>> METAL INLET  = {0:+.3E}'.format(metalInlet))
-    print('>>> METAL OUTLET = {0:+.3E}'.format(metalOutlet))
+    print('>>> STAGGER           = {0:+.3E}'.format(stagger))
+    print('>>> METAL INLET       = {0:+.3E}'.format(metalInlet))
+    print('>>> METAL OUTLET      = {0:+.3E}'.format(metalOutlet))
+    print('>>> OPTIMIZATION COST = {0:+.3E}'.format(camberlineCost))
 
     # plotting data
     if plot:
@@ -1150,9 +1154,9 @@ def optimizeCamberline(
         plt.tight_layout()
         plt.show()
 
-    return stagger, metalInlet, metalOutlet, yCamberline
+    return stagger, metalInlet, metalOutlet, yCamberline, camberlineCost
 
-def optimizeBlade(
+def optimizeGeometry(
         data:      list | np.ndarray, 
         Nsuct:     int, 
         Npress:    int, 
@@ -1164,7 +1168,10 @@ def optimizeBlade(
         method:    str   = 'Nelder-Mead',
         nMax:      int   = 2, 
         tol:       float = 2.5E-5,
+        NsuctLow:  int   = 4, 
+        NpressLow: int   = 4, 
         plot:      bool  = True,
+        save:      bool  = False
     ) -> np.ndarray:
     '''
     This function converts a coordinate based blade geometry into a Kulfan parametrization based geometry.
@@ -1187,32 +1194,35 @@ def optimizeBlade(
 
     # camberline analysis and flipping data analysis
     flip, __data = camberlineAnalysis(data=data, plot=False)
-
-    # allocating data 
-    minCost = np.Inf
-    
+        
     # rotating blade geometry for the optimization
     if angle != 0:
-       __data = rotate(__data, angle, resize=False)
+        __data = rotate(__data, angle, resize=True)
 
     # intepolating data 
     upperLine, lowerLine, upperData, lowerData, upperChord, lowerChord = interpolateData(__data)
-
-    # computing wedge angle 
-    _, _, _, wedgeAngle = computeGuess(data=__data, upperData=upperData, lowerData=lowerData, inletPos=inletPos, outletPos=outletPos)    
 
     # leading edge position
     xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, plot=False)
 
     # camberline approximation
-    stagger, metalInlet, metalOutlet, yCamberlineOptimized = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=False)
+    stagger, metalInlet, metalOutlet, yCamberlineOptimized, camberlineCost = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=False)
+    print('>>> CLINE COST = {0:.3E}'.format(camberlineCost))
+
+    # computing wedge angle 
+    _, _, _, wedgeAngle = computeGuess(data=__data, upperData=upperData, lowerData=lowerData, inletPos=inletPos, outletPos=outletPos)    
 
     # trailing edge radius computation 
     TEradius = bladeTEradius(data=__data, chord=axialChord)
 
+    # optimize blade for lower DOF  
+    print('>>> OPTIMIZE FOR LOW DEGREE OF FREEDOM')
+    print('>>> Nsuct  (LOW DOF) = {0:d}'.format(NsuctLow))
+    print('>>> Npress (LOW DOF) = {0:d}'.format(NpressLow))
+    
     # profile line 
-    Asuct  = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((Nsuct  - 3,)), [0.15]])
-    Apress = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((Npress - 3,)), [0.15]])
+    Asuct  = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((NsuctLow  - 3,)), [0.15]])
+    Apress = np.concatenate([[np.sqrt(LEradius * 2) * 1.2], 0.3 * np.ones((NpressLow - 3,)), [0.15]])
 
     # setting up initial guess
     x = [
@@ -1224,6 +1234,54 @@ def optimizeBlade(
 
     # setting up total guess array
     x = np.concatenate((x, Asuct, Apress, [wedgeAngle]))
+    print('>>> GUESS VECTOR FOR LOW DOF OPTIMIZATION = {0} '.format(np.array2string(x)))
+
+    # arguments generation
+    args = (
+        NsuctLow, 
+        NpressLow,
+        upperLine,
+        lowerLine,
+        TEradius,
+        nPoints
+    )
+
+    # boundaries generation    
+    bounds = boundsGenerator(stagger=stagger, metalInlet=metalInlet, metalOutlet=metalOutlet, Nsuct=NsuctLow, Npress=NpressLow)
+
+    # checking camberline properties: if RMSE/cost computed -> good to go
+    cost = bladeFunc(x, NsuctLow, NpressLow, upperLine, lowerLine, TEradius, nPoints)
+    print('>>> INITIAL RMSE = {0:.3E}'.format(cost))
+        
+    # optimizing blade
+    res = optimize.minimize(fun=bladeFunc, x0=x, args=args, method=method, bounds=bounds)
+        
+    # allocating data
+    x = res.x
+        
+    # getting final low DOF cost
+    cost = bladeFunc(x, NsuctLow, NpressLow, upperLine, lowerLine, TEradius, nPoints)
+    print('>>> LOW DOF OPTIMIZATION => RMSE = {0:.3E}'.format(cost))
+
+    # blade object generation 
+    stagger, metalIn, metalOut, LEradius, Asuct, Apress, wedgeAngle = dataExtraction(x=res.x, Nsuct=NsuctLow, Npress=NpressLow)
+    
+    # blade object
+    lowDOFblade = Blade(stagger=stagger, metalIn=metalIn, metalOut=metalOut, chord=1.0, pitch=1.0, Asuct=Asuct, Apress=Apress, LEradius=LEradius, TEradius=TEradius, wedgeAngle=wedgeAngle, origin=True)
+    
+    # blade scaling and data allocation
+    Asuct, Apress, LEradius = lowDOFblade.scale(Nsuct=Nsuct, Npress=Npress)
+
+    # setting up initial guess
+    x = [
+        stagger,
+        metalInlet,
+        metalOutlet, 
+        LEradius
+    ] 
+
+    # setting up total guess array
+    x = np.concatenate((x, Asuct[1:-1], Apress[1:-1], [wedgeAngle]))
     print('>>> GUESS VECTOR = {0} '.format(x))
 
     # arguments generation
@@ -1276,30 +1334,16 @@ def optimizeBlade(
     # plotting results
     if plot:
         fig = plt.figure()
+        fig.suptitle(r'$\Theta = $' + '{0:.2f}'.format(angle) + r'$^{\circ}$' + ' || ' + r'$cost = $' + '{0:.2E}'.format(cost))
         ax = fig.add_subplot(1,1,1)
 
-        # getting profile line for plotting 
-        x_ = chebyschev(0, 1, 300)
-
-        # plotting optimized camberline from data
-        ax.plot(np.linspace(0, 1, len(yCamberlineOptimized)), yCamberlineOptimized, 'k--', linewidth=3, label='OPTMIZATION.CAMBERLINE')
-        
         # getting from optimization's result
-        bladeUpperLine, bladeLowerLine, camberlineLine, upperChord, bladeData, camberlineData, lowerChord, camberlineChord = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
-        bladeData = rotate(bladeData, -angle, resize=True)
-        ax.plot(bladeData[:,0], bladeData[:,1], 'k', linewidth=5, label='RESULT:BLADE')
-        # ax.plot(x_ * upperChord, bladeUpperLine(x_) * upperChord,                             color='orange',    linestyle='solid', linewidth=3, label='RESULT.UPPER-LINE')
-        # ax.plot(x_ * lowerChord, bladeLowerLine(x_) * lowerChord,                             color='lightblue', linestyle='solid', linewidth=3, label='RESULT.LOWER-LINE')
-        # ax.plot(camberlineData[:,0] * camberlineChord, camberlineData[:,1] * camberlineChord, color='grey',      linestyle='solid', linewidth=3, label='RESULT.CAMBERLINE')
-        
+        _, _, _, upperChord, bladeData, _, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
+        bladeData = rotate(bladeData, 0, resize=True)
+        ax.plot(bladeData[:,0], bladeData[:,1], 'k', linewidth=5, label='RESULT.BLADE')
+    
         # plotting coordinates
-        plotCoords(__data, ax, theta=-angle, resize=True, base=True)
-        
-        # getting data from target blade object
-        bladeUpperLine, bladeLowerLine, camberlineLine, upperChord, bladeData, camberlineData, lowerChord, camberlineChord = bladeDataExtraction(x=None, blade=blade)
-        ax.plot(x_ * upperChord, bladeUpperLine(x_) * upperChord,                             color='orange',    linestyle='dotted', linewidth=3, label='TARGET.UPPER-LINE')
-        ax.plot(x_ * lowerChord, bladeLowerLine(x_) * lowerChord,                             color='lightblue', linestyle='dotted', linewidth=3, label='TARGET.LOWER-LINE')
-        ax.plot(camberlineData[:,0] * camberlineChord, camberlineData[:,1] * camberlineChord, color='k',         linestyle='dotted', linewidth=3, label='TARGET.CAMBERLINE')
+        plotCoords(__data, ax, theta=0, resize=True, base=True)
         
         ax.legend(bbox_to_anchor=(1,1), loc='upper left')
         ax.set_aspect('equal')
@@ -1307,6 +1351,54 @@ def optimizeBlade(
         ax.set_xlabel('x')
         ax.set_ylabel('y')  
         
-        plt.show()
+        # saving figure
+        if not save:
+            plt.show()
 
-    return blade, kulfanParameters, minCost
+    return blade, kulfanParameters, cost, fig
+
+def optimizeBlade(
+        data:      list | np.ndarray, 
+        Nsuct:     int, 
+        Npress:    int, 
+        angle:     float = 0.0,
+        LEradius:  float = 2.5e-2, 
+        nPoints:   int   = 100, 
+        inletPos:  int   = 3, 
+        outletPos: int   = 3,  
+        method:    str   = 'Nelder-Mead',
+        nMax:      int   = 2, 
+        tol:       float = 3E-5,
+        plot:      bool  = True,
+        save:      bool  = False
+    ) -> np.ndarray:
+
+    if angle != 0: 
+        blade, kulfanParameters, cost, fig = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+        print('>>> OPTIMIZATION COST = {0:+.3E}'.format(cost))
+    else:
+        # setting up initial data
+        cost = np.Inf
+
+        # looping over angle and cost
+        while cost > tol and angle < 20:
+            # storing cost 
+            costTemp = cost
+
+            # blade computation
+            bladeTemp, kulfanParametersTemp, cost, figTemp = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+            
+            print('>>> OPTIMIZING FOR THETA = {0:.2f}'.format(angle))
+            print('>>> OPTIMIZATION COST    = {0:+.3E}'.format(cost))
+            
+            # updating cost 
+            if cost < costTemp: 
+                # saving data 
+                blade            = bladeTemp
+                kulfanParameters = kulfanParametersTemp
+                fig              = figTemp 
+
+            # angle updating
+            angle = angle + 10
+
+    return blade, kulfanParameters, cost, fig

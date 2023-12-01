@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import time 
+import time  
 import numpy                  as     np 
 from   matplotlib             import pyplot as plt 
 from   enum                   import Enum, auto 

@@ -44,11 +44,11 @@ def linearSolver(
     x = np.linspace(0, 1, N + 1)
 
     # computing and collecting profile line points
-    profile.computeSurface(x, camberline)
+    profile.compute(x, camberline)
     y = profile.Y
 
     # removing camberline from y
-    yCamber = camberline.yCamberPoint(x)
+    _, yCamber, _, _ = camberline.coordinatePoint(x)
     y = y - yCamber 
 
     # removing TE linear thickness distribution from y
@@ -125,8 +125,8 @@ def linearSolver(
     profileNew = profileLine.ProfileLine(N=N, A=A, wedgeAngle=None, position=profile.position, TEradius=profile.TEradius)
     
     # computing rms between the 2 curves
-    profile.computeSurface(x = np.linspace(0, 1, nPoints), camberline = camberline)
-    profileNew.computeSurface(x = np.linspace(0, 1, nPoints), camberline = camberline)
+    profile.compute(x = np.linspace(0, 1, nPoints), camberline = camberline)
+    profileNew.compute(x = np.linspace(0, 1, nPoints), camberline = camberline)
     
     # rms computation
     rmsX = np.sqrt(1/nPoints * sum((profile.X - profileNew.X)**2)) 
