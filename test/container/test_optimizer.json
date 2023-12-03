@@ -1,8 +1,6 @@
 {
     "fileName": [
-        "naca9430.dat"
-    ],
-    "ok": [
+        "naca9430.dat",
         "upsideDown.dat",
         "symmetric.dat",
         "kulfanBased.dat"

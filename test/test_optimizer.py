@@ -3,8 +3,7 @@ import os
 import sys
 import unittest
 import json 
-import numpy                    as np 
-from   matplotlib import pyplot as plt 
+import numpy as np 
 import matplotlib.backends.backend_pdf
 
 # importing folder 
@@ -69,8 +68,5 @@ class TestOptimizer(unittest.TestCase):
                 # optimizing blade with respect to different DOF
                 _, _, _, fig = optimizer.optimizeBlade(bladeCoords, Nsuct, Npress, nMax=nMax, nPoints=nPoints, plot=True, save=True)
                 pdf.savefig(figure=fig)
-
-                # pdf.close()
-                # plt.close()
                 
         pdf.close()
