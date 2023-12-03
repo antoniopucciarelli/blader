@@ -317,7 +317,7 @@ def rotate(data: list | np.ndarray, theta: float, resize: bool = False) -> np.nd
     for ii, coord in enumerate(data):
         coord = np.matmul(rotMatrix, coord) 
         if resize:
-            data[ii, :] = coord / cos
+            data[ii, :] = coord #/ cos
         else:
             data[ii, :] = coord
 
@@ -1355,7 +1355,13 @@ def optimizeGeometry(
         if not save:
             plt.show()
 
-    return blade, kulfanParameters, cost, fig
+        bladeData = rotate(bladeData, -angle, resize=True)
+    else:
+        fig = None 
+        _, _, _, upperChord, bladeData, _, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
+        bladeData = rotate(bladeData, -angle, resize=True)
+        
+    return blade, kulfanParameters, bladeData, cost, fig, flip
 
 def optimizeBlade(
         data:      list | np.ndarray, 
@@ -1386,7 +1392,7 @@ def optimizeBlade(
             costTemp = cost
 
             # blade computation
-            bladeTemp, kulfanParametersTemp, cost, figTemp = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
             
             print('>>> OPTIMIZING FOR THETA = {0:.2f}'.format(angle))
             print('>>> OPTIMIZATION COST    = {0:+.3E}'.format(cost))
@@ -1395,10 +1401,13 @@ def optimizeBlade(
             if cost < costTemp: 
                 # saving data 
                 blade            = bladeTemp
+                bladeData        = bladeDataTemp
                 kulfanParameters = kulfanParametersTemp
                 fig              = figTemp 
+                if flip:
+                    bladeData[:,1] = - bladeData[:,1]
 
             # angle updating
             angle = angle + 10
 
-    return blade, kulfanParameters, cost, fig
+    return blade, kulfanParameters, bladeData, cost, fig

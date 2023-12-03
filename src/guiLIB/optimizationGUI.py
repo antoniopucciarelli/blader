@@ -82,8 +82,29 @@ class OptimizationFrame(ctk.CTkFrame):
         # optimizing blade
         blade, kulfanParameters, self.bladeData, cost, fig = optimizer.optimizeBlade(self.bladeCoords, self.Nsuct, self.Npress, nMax=self.nMax, nPoints=self.nPoints, plot=True, save=True)
         
-        self.bladeLine.set_xdata(self.bladeData[:,0])
-        self.bladeLine.set_ydata(self.bladeData[:,1])
+        bladeChord = max(self.bladeCoords[:,0]) - min(self.bladeCoords[:,0])
+        dataChord  = max(self.bladeData[:,0]) - min(self.bladeData[:,0])
+        
+        # bladeChord = 1 
+        # dataChord  = 1 
+        
+        maxPosBlade = np.argmax(self.bladeCoords[:,0])
+        maxPosData  = np.argmax(self.bladeData[:,0])
+
+        if abs(self.bladeCoords[maxPosBlade, 1] - self.bladeData[maxPosData, 1]) > 1e-10:
+            # moving blade into origin
+            self.bladeCoords, _, _, _ = optimizer.bladeInOrigin(self.bladeCoords)
+            # updating data
+            self.line.set_xdata(self.bladeCoords[:,0])
+            self.line.set_ydata(self.bladeCoords[:,1])
+
+        try:
+            self.bladeLine.set_xdata(self.bladeData[:,0] / dataChord * bladeChord)
+            self.bladeLine.set_ydata(self.bladeData[:,1] / dataChord * bladeChord)
+        except: 
+            self.bladeLine, = self.axes.plot(self.bladeData[:,0] / dataChord * bladeChord, self.bladeData[:,1] / dataChord * bladeChord, 'r', linewidth=3)
+
+        self.canvas.draw()
 
     def save(self) -> None:
         '''
@@ -124,7 +145,7 @@ class OptimizationFrame(ctk.CTkFrame):
 
         print('>>> READING DATA FROM {0}'.format(self.fileName))
         with open(self.fileName) as f:
-                bladeCoords      = np.loadtxt(f)
+                bladeCoords = np.loadtxt(f)
                 self.bladeCoords = np.array(bladeCoords)
     
     def plotCoordinates(
@@ -139,7 +160,7 @@ class OptimizationFrame(ctk.CTkFrame):
         self.plotFrame = ctk.CTkFrame(master=self)
 
         # create a figure
-        figure = Figure(figsize=(6, 4), dpi=100)
+        figure = Figure(figsize=(10, 10), dpi=100)
 
         # create FigureCanvasTkAgg object
         self.canvas = FigureCanvasTkAgg(figure, self.plotFrame)
@@ -179,6 +200,7 @@ class OptimizationFrame(ctk.CTkFrame):
             self.line, = self.axes.plot(self.bladeCoords[:,0], self.bladeCoords[:,1], 'k', linewidth=3)
         
         # redrawing data
+        self.axes.set_aspect('equal', adjustable='datalim')
         self.canvas.draw()
 
 class FloatSpinbox(ctk.CTkFrame):
