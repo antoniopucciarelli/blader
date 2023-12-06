@@ -285,15 +285,26 @@ class Blade():
         This function saves the normalized blade properties inside a text file. 
         '''
         
-        with open(file=fileName, mode='w') as f:
+        with open(file=fileName + '.dat', mode='w') as f:
             header = 'camberline.x, camberline.y, pressureLine.x, pressureLine.y, suctionLine.x, suctionLine.y'
             data = np.stack([self.__camberline.x, self.__camberline.y, self.__pLine.x, self.__pLine.y, self.__sLine.x, self.__sLine.y], axis=1)
             np.savetxt(fname=f, X=data, delimiter=' ', header=header)
 
-        with open(file='coords.dat', mode='w') as f:
+        print('>>> BLADE COORDINATES SAVED INTO: {0:s}.dat'.format(fileName))
+
+        with open(file=fileName + '_coords.dat', mode='w') as f:
             header = 'x, y'
             data = np.stack([np.concatenate([np.flip(self.__pLine.x[1::]), self.__sLine.x]), np.concatenate([np.flip(self.__pLine.y[1::]), self.__sLine.y])], axis=1)
             np.savetxt(fname=f, X=data, delimiter=' ', header=header)
+
+        print('>>> BLADE COORDINATES SAVED INTO: {0:s}_coords.dat'.format(fileName))
+
+        with open(file=fileName + '_params.dat', mode='w') as f:
+            header = 'stagger, inlet metal angle, outlet metal angle, LEradius, TEradius, Asuct[1:{0:d}], Apress[1:{1:d}], pitch'.format(len(self.__Asuct) - 1, len(self.__Apress) - 1)
+            data = np.concatenate([[self.__stagger, self.__metalIn, self.__metalOut, self.__LEradius, self.__TEradius], self.__Asuct[1::], self.__Apress[1::], [self.__pitch]]) 
+            np.savetxt(fname=f, X=data, delimiter=' ', header=header)
+        
+        print('>>> BLADE COORDINATES SAVED INTO: {0:s}_params.dat'.format(fileName))
 
     def printout(self) -> None:
         '''

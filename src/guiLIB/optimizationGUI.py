@@ -80,7 +80,7 @@ class OptimizationFrame(ctk.CTkFrame):
         '''
 
         # optimizing blade
-        blade, kulfanParameters, self.bladeData, cost, fig, angle = optimizer.optimizeBlade(self.bladeCoords, self.Nsuct, self.Npress, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
+        self.blade, self.kulfanParameters, self.bladeData, _, _, _ = optimizer.optimizeBlade(self.bladeCoords, self.Nsuct, self.Npress, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
 
         # normalizing data
         self.bladeData, _, _, _ = optimizer.bladeInOrigin(self.bladeData)
@@ -101,7 +101,19 @@ class OptimizationFrame(ctk.CTkFrame):
         '''
         This function allows the app to save the optimized data.
         '''
-        pass
+
+        # only *.dat files are allowed
+        filetypes = [('dat files', '*.dat')]
+        
+        # getting file name
+        fileName = filedialog.asksaveasfilename(filetypes=filetypes, initialfile='data')
+
+        # removing *.dat file
+        fileName = fileName[0:-4]
+        
+        # saving blade properties
+        self.blade.save(fileName)
+        print('>>> BLADE COORDINATES SAVED INTO: {0:s}*.dat'.format(fileName))
 
     def getData(self) -> None:
         '''
