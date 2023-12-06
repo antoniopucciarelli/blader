@@ -476,7 +476,7 @@ class Camberline():
 
         return lineLength
 
-    def __curveRefinement(self, pointsInUnit: int = 150, Npoints: int = 3, printout: bool = False) -> float:
+    def curveRefinement(self, pointsInUnit: int = 150, Npoints: int = 3, printout: bool = False) -> float:
         r'''
         This function automatically refines the camberline. It adds points in order to keep the distance between each consecutive points lower than `1/pointsInUnit`. 
 
@@ -504,7 +504,7 @@ class Camberline():
         # compute total length 
         totalLength = 0.0 
         for ii in range(len(self.x) - 1):
-            totalLength = totalLength + self.computeLength(x0=self.x[ii], x1=self.x[ii+1], Npoints=Npoints)
+            totalLength = totalLength + self.__computeLength(x0=self.x[ii], x1=self.x[ii+1], Npoints=Npoints)
 
         # each segment length
         length = totalLength / (pointsInUnit - 1)
@@ -516,14 +516,14 @@ class Camberline():
             X = prevX + 1 / (pointsInUnit - 1) 
         
             # updating starting point in the length computing function
-            lengthFunc = lambda x: self.computeLength(x0=prevX, x1=x, Npoints=Npoints) - length
+            lengthFunc = lambda x: self.__computeLength(x0=prevX, x1=x, Npoints=Npoints) - length
 
             # checking if line end is not 
             if X >= 1:
                 X = 1.0
 
             # computing delta length 
-            deltaLength = self.computeLength(x0=prevX, x1=X, Npoints=Npoints) - length
+            deltaLength = self.__computeLength(x0=prevX, x1=X, Npoints=Npoints) - length
 
             # setting b point in bisection function
             if deltaLength > 0:
@@ -532,7 +532,7 @@ class Camberline():
                 res = bisect(f=lengthFunc, a=prevX, b=1.0)
 
             # storing length into vector
-            segmentLen = self.computeLength(x0=prevX, x1=X, Npoints=5) 
+            segmentLen = self.__computeLength(x0=prevX, x1=X, Npoints=5) 
             lenVec.append(segmentLen)
             
             if printout:
@@ -553,14 +553,14 @@ class Camberline():
         xVec.append(1.0)
 
         # setting up the last segment length
-        segmentLen = self.computeLength(prevX, 1.0, Npoints=5) 
+        segmentLen = self.__computeLength(prevX, 1.0, Npoints=5) 
         lenVec.append(segmentLen)
 
         # allocating points distribution 
         self.x = np.array(xVec)
         
         # recomputing data 
-        self.yCamberLine(self.x)
+        self.__y()
 
         # allocating length vector 
         self.length = np.array(lenVec)

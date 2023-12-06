@@ -240,9 +240,9 @@ class Blade():
 
     def scale(
             self, 
-            Nsuct:      int, 
-            Npress:     int, 
-            plot:       bool = False
+            Nsuct:  int, 
+            Npress: int, 
+            plot:   bool = False
         ) -> None:
         '''
         This function scales the blade geometry.
