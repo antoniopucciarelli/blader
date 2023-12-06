@@ -17,7 +17,7 @@ def chebyschev(start: float, end: float, nPoints: int):
 
     return x 
 
-def bladeInOrigin(data: list | np.ndarray) -> tuple[np.ndarray, float, float, float]:
+def bladeInOrigin(data: list | np.ndarray, scale: bool = True) -> tuple[np.ndarray, float, float, float]:
     '''
     This function displaces the blade data into the origin.
     '''
@@ -33,6 +33,10 @@ def bladeInOrigin(data: list | np.ndarray) -> tuple[np.ndarray, float, float, fl
 
     # converting data into numpy array object 
     data = np.array(data)
+
+    if scale: 
+        maxX = max(data[:, 0])
+        data = data / maxX
 
     return data, minPos, minX, minXy
 
@@ -317,7 +321,7 @@ def rotate(data: list | np.ndarray, theta: float, resize: bool = False) -> np.nd
     for ii, coord in enumerate(data):
         coord = np.matmul(rotMatrix, coord) 
         if resize:
-            data[ii, :] = coord #/ cos
+            data[ii, :] = coord / cos
         else:
             data[ii, :] = coord
 
@@ -1190,14 +1194,17 @@ def optimizeGeometry(
     '''
 
     # moving blade into origin
-    data, _, _, _ = bladeInOrigin(data)
+    data, _, _, _ = bladeInOrigin(data, scale=True)
 
     # camberline analysis and flipping data analysis
     flip, __data = camberlineAnalysis(data=data, plot=False)
         
     # rotating blade geometry for the optimization
     if angle != 0:
-        __data = rotate(__data, angle, resize=True)
+        __data = rotate(__data, angle, resize=False)
+
+    # moving blade into origin
+    data, _, _, _ = bladeInOrigin(data, scale=True)
 
     # intepolating data 
     upperLine, lowerLine, upperData, lowerData, upperChord, lowerChord = interpolateData(__data)
@@ -1355,11 +1362,11 @@ def optimizeGeometry(
         if not save:
             plt.show()
 
-        bladeData = rotate(bladeData, -angle, resize=True)
+        bladeData = rotate(bladeData, -angle, resize=False )
     else:
         fig = None 
         _, _, _, upperChord, bladeData, _, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
-        bladeData = rotate(bladeData, -angle, resize=True)
+        bladeData = rotate(bladeData, -angle, resize=False)
         
     return blade, kulfanParameters, bladeData, cost, fig, flip
 
@@ -1380,7 +1387,7 @@ def optimizeBlade(
     ) -> np.ndarray:
 
     if angle != 0: 
-        blade, kulfanParameters, cost, fig = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+        blade, kulfanParameters, bladeData, cost, fig, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
         print('>>> OPTIMIZATION COST = {0:+.3E}'.format(cost))
     else:
         # setting up initial data
@@ -1410,4 +1417,6 @@ def optimizeBlade(
             # angle updating
             angle = angle + 10
 
-    return blade, kulfanParameters, bladeData, cost, fig
+        angle = angle - 10
+
+    return blade, kulfanParameters, bladeData, cost, fig, angle

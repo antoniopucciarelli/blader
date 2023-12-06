@@ -53,7 +53,7 @@ class OptimizationFrame(ctk.CTkFrame):
     
         # image plotting
         self.loadButton = ctk.CTkButton(master=self.frame, text='LOAD DATA', command=self.getData)
-        self.loadButton.grid(row=0, column=0, sticky="ew")
+        self.loadButton.grid(row=0, column=0, sticky="ew", pady=3)
 
         self.plotCoordinates(row=0, column=1)
 
@@ -68,11 +68,11 @@ class OptimizationFrame(ctk.CTkFrame):
 
         # optimization button 
         self.optButton = ctk.CTkButton(master=self.frame, text='OPTIMIZE', command=self.optimize)
-        self.optButton.grid(row=3, column=0, sticky="ew")
+        self.optButton.grid(row=3, column=0, sticky="ew", pady=3)
 
         # save button 
         self.saveButton = ctk.CTkButton(master=self.frame, text='SAVE', command=self.save)
-        self.saveButton.grid(row=4, column=0, sticky="ew")
+        self.saveButton.grid(row=4, column=0, sticky="ew", pady=3)
 
     def optimize(self) -> None:
         '''
@@ -80,29 +80,20 @@ class OptimizationFrame(ctk.CTkFrame):
         '''
 
         # optimizing blade
-        blade, kulfanParameters, self.bladeData, cost, fig = optimizer.optimizeBlade(self.bladeCoords, self.Nsuct, self.Npress, nMax=self.nMax, nPoints=self.nPoints, plot=True, save=True)
-        
-        bladeChord = max(self.bladeCoords[:,0]) - min(self.bladeCoords[:,0])
-        dataChord  = max(self.bladeData[:,0]) - min(self.bladeData[:,0])
-        
-        # bladeChord = 1 
-        # dataChord  = 1 
-        
-        maxPosBlade = np.argmax(self.bladeCoords[:,0])
-        maxPosData  = np.argmax(self.bladeData[:,0])
+        blade, kulfanParameters, self.bladeData, cost, fig, angle = optimizer.optimizeBlade(self.bladeCoords, self.Nsuct, self.Npress, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
 
-        if abs(self.bladeCoords[maxPosBlade, 1] - self.bladeData[maxPosData, 1]) > 1e-10:
-            # moving blade into origin
-            self.bladeCoords, _, _, _ = optimizer.bladeInOrigin(self.bladeCoords)
-            # updating data
-            self.line.set_xdata(self.bladeCoords[:,0])
-            self.line.set_ydata(self.bladeCoords[:,1])
+        # normalizing data
+        self.bladeData, _, _, _ = optimizer.bladeInOrigin(self.bladeData)
+
+        # updating blade properties 
+        deltaY = (self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - (self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
+        self.bladeData[:,1] = self.bladeData[:,1] - deltaY 
 
         try:
-            self.bladeLine.set_xdata(self.bladeData[:,0] / dataChord * bladeChord)
-            self.bladeLine.set_ydata(self.bladeData[:,1] / dataChord * bladeChord)
+            self.bladeLine.set_xdata(self.bladeData[:,0])
+            self.bladeLine.set_ydata(self.bladeData[:,1])
         except: 
-            self.bladeLine, = self.axes.plot(self.bladeData[:,0] / dataChord * bladeChord, self.bladeData[:,1] / dataChord * bladeChord, 'r', linewidth=3)
+            self.bladeLine, = self.axes.plot(self.bladeData[:,0], self.bladeData[:,1], 'r', linewidth=3)
 
         self.canvas.draw()
 
@@ -147,7 +138,8 @@ class OptimizationFrame(ctk.CTkFrame):
         with open(self.fileName) as f:
                 bladeCoords = np.loadtxt(f)
                 self.bladeCoords = np.array(bladeCoords)
-    
+                self.bladeCoords, _, _, _ = optimizer.bladeInOrigin(self.bladeCoords, scale=True)
+      
     def plotCoordinates(
             self,
             row:    int,
