@@ -300,8 +300,8 @@ class Blade():
         print('>>> BLADE COORDINATES SAVED INTO: {0:s}_coords.dat'.format(fileName))
 
         with open(file=fileName + '_params.dat', mode='w') as f:
-            header = 'stagger, inlet metal angle, outlet metal angle, LEradius, TEradius, Asuct[1:{0:d}], Apress[1:{1:d}], pitch'.format(len(self.__Asuct) - 1, len(self.__Apress) - 1)
-            data = np.concatenate([[self.__stagger, self.__metalIn, self.__metalOut, self.__LEradius, self.__TEradius], self.__Asuct[1::], self.__Apress[1::], [self.__pitch]]) 
+            header = 'stagger, inlet metal angle, outlet metal angle, LEradius, TEradius, wedgeAngle, Asuct[1:{0:d}], Apress[1:{1:d}], pitch'.format(len(self.__Asuct) - 1, len(self.__Apress) - 1)
+            data = np.concatenate([[self.__stagger, self.__metalIn, self.__metalOut, self.__LEradius, self.__TEradius, self.__wedgeAngle], self.__Asuct[1::], self.__Apress[1::], [self.__pitch]]) 
             np.savetxt(fname=f, X=data, delimiter=' ', header=header)
         
         print('>>> BLADE COORDINATES SAVED INTO: {0:s}_params.dat'.format(fileName))
