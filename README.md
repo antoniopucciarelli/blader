@@ -38,3 +38,21 @@ If the result is considered acceptable, it is possible to save the blade into a 
 The following is an example:
 
 ![Example](./misc/runGIF.gif)
+
+### Blade Data
+
+The blade target data has to be stored into a ```*.dat``` file. This file must follow a defined order.
+
+It is possible to comment the blade name at the first line using a ```#``` sign.
+
+Following the first line comment, it is necessary to write down the coordinates of the blade in [x, y] faschion.
+The coordinates have to be delimited by a ***space*** and the first coordinate is the one of the upper side tralining edge.
+The last coordinate is the one of the lower side traliling edge. The coordinates have to follow a monotonic behavior in the upper side and lower side of the blade.
+
+### DELTA ANGLE
+
+The delta angle value allows the optimizer to use different optimization steps if an optimization error occours. The program automatically optimizes for different angle of attack because the Kulfan parametrization suffers of numerical errors in the camberline parametrization: rotating the blade coordinates allows the optimizer to find a working camberline for the global optimzation.
+
+### SUCTION/PRESSURE
+
+These two values define the suction side and pressure side DOF for the parametrization. The higher the more parameters used for the blade representation and the slower the optimization. It is suggested to start with a low DOF both for suction side and pressure side.
