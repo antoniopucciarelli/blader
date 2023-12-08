@@ -1,5 +1,8 @@
 {
     "fileName": [
+        "naca3715.dat"
+    ],
+    "'ok": [
         "naca9430.dat",
         "upsideDown.dat",
         "symmetric.dat",

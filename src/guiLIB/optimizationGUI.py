@@ -69,13 +69,17 @@ class OptimizationFrame(ctk.CTkFrame):
         self.NpressBox.set(4)
         self.NpressBox.grid(row=2, column=0, pady=pady, padx=5)
 
+        self.deltaAngleBox = FloatSpinbox(master=self.frame, label='DELTA ANGLE', width=270, step_size=1, minVal=1, maxVal=10)
+        self.deltaAngleBox.set(1)
+        self.deltaAngleBox.grid(row=3, column=0, pady=pady, padx=5)
+
         # optimization button 
         self.optButton = ctk.CTkButton(master=self.frame, text='OPTIMIZE', command=self.optimize, corner_radius=corner_radius)
-        self.optButton.grid(row=3, column=0, pady=pady, padx=5, sticky='we')
+        self.optButton.grid(row=4, column=0, pady=pady, padx=5, sticky='we')
 
         # save button 
         self.saveButton = ctk.CTkButton(master=self.frame, text='SAVE', command=self.save, corner_radius=corner_radius)
-        self.saveButton.grid(row=4, column=0, pady=pady, padx=5, sticky='we')
+        self.saveButton.grid(row=5, column=0, pady=pady, padx=5, sticky='we')
 
         # chart 
         self.plotCoordinates(row=0, column=1)
@@ -86,13 +90,13 @@ class OptimizationFrame(ctk.CTkFrame):
         '''
 
         # optimizing blade
-        self.blade, self.kulfanParameters, self.bladeData, _, _, _ = optimizer.optimizeBlade(self.bladeCoords, self.Nsuct, self.Npress, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
+        self.blade, self.kulfanParameters, self.bladeData, _, _, angle = optimizer.optimizeBlade(self.bladeCoords, self.NsuctBox.value, self.NpressBox.value, deltaAngle=self.deltaAngleBox.value, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
 
         # normalizing data
         self.bladeData, _, _, _ = optimizer.bladeInOrigin(self.bladeData)
 
         # updating blade properties 
-        deltaY = (self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - (self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
+        deltaY = abs(self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - abs(self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
         self.bladeData[:,1] = self.bladeData[:,1] - deltaY 
 
         try:
@@ -100,6 +104,11 @@ class OptimizationFrame(ctk.CTkFrame):
             self.bladeLine.set_ydata(self.bladeData[:,1])
         except: 
             self.bladeLine, = self.axes.plot(self.bladeData[:,0], self.bladeData[:,1], 'r', linewidth=3)
+
+        print('>>> Nsuct       = {0:d}'.format(self.NsuctBox.value))
+        print('>>> Npress      = {0:d}'.format(self.NpressBox.value))
+        print('>>> DELTA ANGLE = {0:d}'.format(self.deltaAngleBox.value))
+        print('>>> ANGLE       = {0:f}'.format(angle))
 
         self.canvas.draw()
 
@@ -237,6 +246,7 @@ class FloatSpinbox(ctk.CTkFrame):
         self.step_size  = step_size
         self.command    = command
         self.defaultVal = defaultVal 
+        self.value      = defaultVal
         self.minVal     = minVal 
         self.maxVal     = maxVal
 
@@ -258,10 +268,12 @@ class FloatSpinbox(ctk.CTkFrame):
 
     def add_button_callback(self):
         value = min([int(self.label.cget('text')) + self.step_size, self.maxVal])
+        self.value = value
         self.label.configure(text=str(value))
 
     def subtract_button_callback(self):
         value = max([int(self.label.cget('text')) - self.step_size, self.minVal])
+        self.value = value
         self.label.configure(text=str(value))
 
     def get(self) -> int or None:
@@ -269,3 +281,4 @@ class FloatSpinbox(ctk.CTkFrame):
         
     def set(self, value: int):
         self.label.configure(text=str(value))
+        self.value = value

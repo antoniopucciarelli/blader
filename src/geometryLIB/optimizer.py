@@ -1446,6 +1446,7 @@ def optimizeBlade(
         Nsuct:     int, 
         Npress:    int, 
         angle:     float = 0.0,
+        deltaAngle: float = 2.5,
         LEradius:  float = 2.5e-2, 
         nPoints:   int   = 100, 
         inletPos:  int   = 3, 
@@ -1537,8 +1538,8 @@ def optimizeBlade(
                     bladeData[:,1] = - bladeData[:,1]
 
             # angle updating
-            angle = angle + 10
+            angle = angle + deltaAngle
 
-        angle = angle - 10
+        angle = angle - deltaAngle
 
     return blade, kulfanParameters, bladeData, cost, fig, angle
