@@ -34,3 +34,7 @@ The DOFs can be selected with the ``SUCTION`` and ``PRESSURE`` index in the wind
 Once everything is set, the optmized can be launched using the ``OPTIMZE`` button.
 
 If the result is considered acceptable, it is possible to save the blade into a ``*.dat`` file. This file comprehends the Kulfan parameters and the blade coordinates.
+
+The following is an example:
+
+![Example](./misc/runGIF.gif)
