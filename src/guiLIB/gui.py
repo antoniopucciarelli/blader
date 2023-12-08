@@ -20,17 +20,6 @@ class App(ctk.CTk):
         # setting up title
         self.title('blader')
 
-        # find the center point
-        center_x = 10
-        center_y = 10
-
-        # set the position of the window to the center of the screen
-        # self.geometry(f'{minsize[0]}x{minsize[1]}+{center_x}+{center_y}')
-
-        # setting up grid properties 
-        # self.grid_columnconfigure(0, weight=1)
-        # self.grid_rowconfigure(0, weight=1)
-
         self.optimizationFrame = optimizationGUI.OptimizationFrame(master=self)
         self.optimizationFrame.grid(row=0, column=0)
 

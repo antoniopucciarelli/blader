@@ -598,8 +598,8 @@ class ProfileLine():
 
         for ii in range(Npoints - 1): 
             # thickness distribution
-            X0, Y0 = self.thicknessDistribution(xVec[ii], camberline)
-            X1, Y1 = self.thicknessDistribution(xVec[ii+1], camberline)
+            X0, Y0 = self.thickness(xVec[ii], camberline)
+            X1, Y1 = self.thickness(xVec[ii+1], camberline)
 
             # thickness distribution due to trailing edge 
             XTE0, YTE0 = self.TEdistribution(xVec[ii], camberline)
@@ -725,7 +725,7 @@ class ProfileLine():
         print('>>> SURFACE TOTAL LENGTH = {0:.3E}'.format(self.totalLength))
 
         # computing lines points 
-        self.computeSurface(self.x, camberline)
+        self.compute(self.x, camberline)
 
         if timePrintout:
             # updating time 

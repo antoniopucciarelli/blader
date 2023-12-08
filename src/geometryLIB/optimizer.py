@@ -1,9 +1,12 @@
-import numpy                  as     np 
-import matplotlib.pyplot      as     plt 
-from   scipy                  import misc, integrate, interpolate, optimize 
-from   scipy.optimize         import Bounds    
-from   geometryLIB.blade      import Blade 
-from   geometryLIB.camberline import Camberline
+import time
+import numpy                             as     np 
+import matplotlib.pyplot                 as     plt 
+from   matplotlib                        import lines
+from   scipy                             import misc, integrate, interpolate, optimize 
+from   scipy.optimize                    import Bounds    
+from   geometryLIB.blade                 import Blade 
+from   geometryLIB.camberline            import Camberline
+from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 def chebyschev(start: float, end: float, nPoints: int) -> np.ndarray:
     '''
@@ -569,8 +572,10 @@ def bladeFunc(
         upperLine:   interpolate.interp1d,
         lowerLine:   interpolate.interp1d,
         TEradius:    float,
-        nPoints:     int  = 200,
-        printout:    bool = False
+        nPoints:     int               = 200,
+        dataLine:    lines.Line2D      = None,
+        canvas:      FigureCanvasTkAgg = None,
+        printout:    bool              = False,
     ) -> float:
     '''
     This function computes the error between a set of coordinates and a parametrized blade.
@@ -606,11 +611,6 @@ def bladeFunc(
     # blade generation 
     try:
         blade = Blade(stagger=stagger, metalIn=metalIn, metalOut=metalOut, chord=1.0, pitch=1.0, Asuct=Asuct, Apress=Apress, LEradius=LEradius, TEradius=TEradius, wedgeAngle=wedgeAngle, origin=True)
-
-        # plotting blade
-        # blade.plot()
-
-        # exit()
 
         # getting blade coordinates with the most left point as origin
         XPS, YPS, XSS, YSS, _, _ = blade.coordinate()
@@ -682,6 +682,28 @@ def bladeFunc(
 
     if printout:
         print("RMSE = {0:.3E}".format(RMSE))
+    
+    print('\n\ntypes')
+    print(type(dataLine))
+    print(type(canvas))
+    print(dataLine)
+    print(canvas)
+    print('types\n\n')
+    
+    if isinstance(dataLine, lines.Line2D) and isinstance(canvas, FigureCanvasTkAgg):
+        print('in if')
+        
+        Xvec = np.concatenate([np.flip(x), x])
+        Yvec = np.concatenate([np.flip(bladeUpperY), bladeLowerY])
+        
+        print(Xvec)
+        print(Yvec)
+
+        dataLine.set_xdata(Xvec)
+        dataLine.set_ydata(Yvec)
+        canvas.draw()
+        
+        time.sleep(1)
 
     return RMSE
 
@@ -1203,18 +1225,20 @@ def optimizeGeometry(
         data:      list | np.ndarray, 
         Nsuct:     int, 
         Npress:    int, 
-        angle:     float = 0.0,
-        LEradius:  float = 2.5e-2, 
-        nPoints:   int   = 100, 
-        inletPos:  int   = 3, 
-        outletPos: int   = 3,  
-        method:    str   = 'Nelder-Mead',
-        nMax:      int   = 2, 
-        tol:       float = 2.5E-5,
-        NsuctLow:  int   = 4, 
-        NpressLow: int   = 4, 
-        plot:      bool  = True,
-        save:      bool  = False
+        angle:     float             = 0.0,
+        LEradius:  float             = 2.5e-2, 
+        nPoints:   int               = 100, 
+        inletPos:  int               = 3, 
+        outletPos: int               = 3,  
+        method:    str               = 'Nelder-Mead',
+        nMax:      int               = 2, 
+        tol:       float             = 2.5E-5,
+        NsuctLow:  int               = 4, 
+        NpressLow: int               = 4, 
+        dataLine:  lines.Line2D      = None,
+        canvas:    FigureCanvasTkAgg = None,
+        plot:      bool              = True,
+        save:      bool              = False
     ) -> np.ndarray:
     '''
     This function converts a coordinate based blade geometry into a Kulfan parametrization based geometry.
@@ -1373,7 +1397,9 @@ def optimizeGeometry(
         upperLine,
         lowerLine,
         TEradius,
-        nPoints
+        nPoints,
+        dataLine,
+        canvas
     )
 
     # boundaries generation    
@@ -1457,6 +1483,8 @@ def optimizeBlade(
         method:    str   = 'Nelder-Mead',
         nMax:      int   = 2, 
         tol:       float = 3E-5,
+        dataLine:  plt.Line2D        = None,
+        canvas:    FigureCanvasTkAgg = None,
         plot:      bool  = True,
         save:      bool  = False
     ) -> np.ndarray:
@@ -1525,7 +1553,7 @@ def optimizeBlade(
             costTemp = cost
 
             # blade computation
-            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, dataLine=dataLine, canvas=canvas, plot=plot, save=save)
             
             print('>>> OPTIMIZING FOR THETA = {0:.2f}'.format(angle))
             print('>>> OPTIMIZATION COST    = {0:+.3E}'.format(cost))
@@ -1546,101 +1574,3 @@ def optimizeBlade(
         angle = angle - 10
 
     return blade, kulfanParameters, bladeData, cost, fig, angle
-
-def __bladeLEpos(upperLine: interpolate.interp1d, lowerLine: interpolate.interp1d, dx: float = 1E-3, maxX: float = 0.1, nPoints: int = 30, plot: bool = True) -> tuple:
-    '''
-    This function computes the blade leading edge position inside the coordinate based blade representation.
-    '''
-
-    # complete data assembly
-    x_           = chebyschev(0, maxX, 100)
-    upperData    = np.stack([x_[2::], upperLine(x_[2::])], axis=1)
-    lowerData    = np.stack([np.flip(x_[1::]), np.flip(lowerLine(x_[1::]))], axis=1)
-    
-    # filtering data for interpolation 
-    upperData = upperData[0:np.argmax(upperData[:,1])-1, :]
-    lowerData = lowerData[np.argmin(lowerData[:,1]):np.argmax(lowerData[:,1]), :]
-    completeData = np.vstack([lowerData, upperData])
-
-    # complete flipped line 
-    X = np.linspace(min(completeData[:,1]), max(completeData[:,1]), 100)
-    f = interpolate.CubicSpline(completeData[:,1], completeData[:,0])
-
-    # curvature study
-    xStudy     = completeData[10:-10, 1]
-    fDer       = misc.derivative(func=f, x0=xStudy, n=1, dx=dx)
-    fDerDer    = misc.derivative(func=f, x0=xStudy, n=2, dx=dx)
-    fCurvature = np.abs(fDerDer) / (1 + fDer**2)**(3/2)
-
-    # computing properties
-    fMaxPos = np.argmax(fCurvature)
-    xLE     = xStudy[fMaxPos]
-    fPrime  = misc.derivative(func=f, x0=xLE, n=1, dx=dx)
-    fPrime2 = misc.derivative(func=f, x0=xLE, n=2, dx=dx)
-
-    # computing leading edge position 
-    yLE = f(xLE) 
-
-    # setting up leading edge position 
-    LEpos = [yLE, xLE]
-
-    # axial chord computation
-    axialChord = 1 - LEpos[0] 
-
-    # computing leading edge radius 
-    LEradius = 1 / (np.abs(fPrime2) * axialChord) 
-
-    print('>>> dx                    = {0:.3E}'.format(dx))
-    print('>>> LEADING EDGE POSITION = [{0:.3E}, {1:.3E}]'.format(LEpos[0], LEpos[1]))
-    if max(LEradius, 2.5E-2) == 2.5E-2:
-        LEradius = 2.5E-2
-        print('>>> LEADING EDGE RADIUS TOO LOW: APPROXIMATED TO {0:.3E}'.format(LEradius))
-    else:
-        print('>>> LEADING EDGE RADIUS   = {0:.3E}'.format(LEradius))
-
-    if plot:
-        # plotting data
-        fig = plt.figure()
-        
-        ax0 = fig.add_subplot(1,4,1)
-        ax0.plot(f(X), X, 'r',  linewidth=3, label='Y')
-        ax0.plot(yLE, xLE, 'ok', linewidth=3)
-
-        ax0.grid(visible=True, linestyle='dotted')
-        ax0.set_xlabel('x')
-        ax0.set_ylabel('y')
-        ax0.set_aspect('equal')
-
-        ax1 = fig.add_subplot(1,4,2)
-
-        ax1.plot(xStudy, fDer, 'orange')
-        ax1.plot(xLE, fPrime, 'ok')
-
-        ax1.set_title(r'$y^{\prime}$')
-        ax1.set_xlabel('x')
-        ax1.set_ylabel('y')
-        ax1.grid(visible=True, linestyle='dotted')
-
-        ax2 = fig.add_subplot(1,4,3)
-
-        ax2.plot(xStudy, fDerDer, 'orange')
-        ax2.plot(xLE, fPrime2, 'ok')
-
-        ax2.set_title(r'$y^{\prime \prime}$')
-        ax2.set_xlabel('x')
-        ax2.set_ylabel('y')
-        ax2.grid(visible=True, linestyle='dotted')
-
-        ax3 = fig.add_subplot(1,4,4)
-
-        ax3.plot(xStudy, fCurvature, 'orange')
-        
-        ax3.set_title(r'$\kappa$')
-        ax3.set_xlabel('x')
-        ax3.set_ylabel('y')
-        ax3.grid(visible=True, linestyle='dotted')
-
-        plt.tight_layout()
-        plt.show()
-
-    return LEpos[0], LEpos[1], LEradius, axialChord 
