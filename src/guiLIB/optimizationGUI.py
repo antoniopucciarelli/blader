@@ -35,44 +35,50 @@ class OptimizationFrame(ctk.CTkFrame):
         self.nPoints = 100
 
         # setting up frame
-        self.setupFrame(row=0, col=0)
+        self.setupFrame()
 
     def setupFrame(
-            self, 
-            row: int, 
-            col: int, 
+            self,
+            corner_radius: int = 10,
+            pady:          int = 5
         ) -> None:
         '''
         This function setup the study frame of the app.
         '''
 
         # setting up label frame
-        self.frame = ctk.CTkFrame(self, corner_radius=10) 
-        self.frame['text'] = 'Airfoil'
-        self.frame.grid(row=row, column=col, rowspan=10, padx=5, pady=5, sticky='nwe')
+        self.frame = ctk.CTkFrame(
+            self,
+            width         = 300,
+            height        = 100,
+            corner_radius = 10,
+            bg_color      = 'transparent'
+        )
+        self.frame.grid(row=0, column=0, rowspan=10, padx=0, pady=5, sticky='nwe')
     
         # image plotting
-        self.loadButton = ctk.CTkButton(master=self.frame, text='LOAD DATA', command=self.getData)
-        self.loadButton.grid(row=0, column=0, sticky="ew", pady=3)
-
-        self.plotCoordinates(row=0, column=1)
+        self.loadButton = ctk.CTkButton(master=self.frame, text='LOAD DATA', command=self.getData, corner_radius=corner_radius)
+        self.loadButton.grid(row=0, column=0, pady=pady, padx=5, sticky='we')
 
         # sliders 
-        self.NsuctBox = FloatSpinbox(master=self.frame, label='SUCTION', width=150, step_size=1)
+        self.NsuctBox = FloatSpinbox(master=self.frame, label='SUCTION', width=270, step_size=1)
         self.NsuctBox.set(4)
-        self.NsuctBox.grid(row=1, column=0)
+        self.NsuctBox.grid(row=1, column=0, pady=pady, padx=5)
 
-        self.NpressBox = FloatSpinbox(master=self.frame, label='PRESSURE', width=150, step_size=1)
+        self.NpressBox = FloatSpinbox(master=self.frame, label='PRESSURE', width=270, step_size=1)
         self.NpressBox.set(4)
-        self.NpressBox.grid(row=2, column=0)
+        self.NpressBox.grid(row=2, column=0, pady=pady, padx=5)
 
         # optimization button 
-        self.optButton = ctk.CTkButton(master=self.frame, text='OPTIMIZE', command=self.optimize)
-        self.optButton.grid(row=3, column=0, sticky="ew", pady=3)
+        self.optButton = ctk.CTkButton(master=self.frame, text='OPTIMIZE', command=self.optimize, corner_radius=corner_radius)
+        self.optButton.grid(row=3, column=0, pady=pady, padx=5, sticky='we')
 
         # save button 
-        self.saveButton = ctk.CTkButton(master=self.frame, text='SAVE', command=self.save)
-        self.saveButton.grid(row=4, column=0, sticky="ew", pady=3)
+        self.saveButton = ctk.CTkButton(master=self.frame, text='SAVE', command=self.save, corner_radius=corner_radius)
+        self.saveButton.grid(row=4, column=0, pady=pady, padx=5, sticky='we')
+
+        # chart 
+        self.plotCoordinates(row=0, column=1)
 
     def optimize(self) -> None:
         '''
@@ -148,7 +154,7 @@ class OptimizationFrame(ctk.CTkFrame):
 
         print('>>> READING DATA FROM {0}'.format(self.fileName))
         with open(self.fileName) as f:
-                bladeCoords = np.loadtxt(f)
+                bladeCoords      = np.loadtxt(f)
                 self.bladeCoords = np.array(bladeCoords)
                 self.bladeCoords, _, _, _ = optimizer.bladeInOrigin(self.bladeCoords, scale=True)
       
@@ -161,6 +167,7 @@ class OptimizationFrame(ctk.CTkFrame):
         This function plots the blade coordinates got from a .dat file. 
         '''
         
+        # setting up frame
         self.plotFrame = ctk.CTkFrame(master=self)
 
         # create a figure
@@ -172,23 +179,27 @@ class OptimizationFrame(ctk.CTkFrame):
         # create axes
         axes = figure.add_subplot()
         self.axes = axes
+        self.line, = self.axes.plot([], [], 'k', linewidth=3)
+        self.bladeLine, = self.axes.plot([], [], 'r', linewidth=3)
 
         # trying plotting data 
         try:
-            self.line, = self.axes.plot(self.bladeCoords[:,0], self.bladeCoords[:,1], 'k', linewidth=3)
-            self.bladeLine, = self.axes.plot([], [], 'r', linewidht=3)
+            self.line.set_xdata(self.bladeCoords[:,0])
+            self.line.set_ydata(self.bladeCoords[:,1])
         except:
             print('>>> PROBLEM PRINTING DATA')
         finally:
-            self.axes.set_aspect('equal', adjustable='datalim')
+            self.axes.set_xlim(-0.1,1.1)
+            self.axes.set_ylim(-1,1)
+            self.axes.set_aspect('equal')
             self.axes.set_title('Blade')
             self.axes.grid(visible=True, linestyle='dotted')
             self.axes.set_ylabel('y')
             self.axes.set_xlabel('x')
 
         # setting up tkinter properties
-        self.plotFrame.grid(row=row, column=column)
-        self.canvas.get_tk_widget().grid(row=0, column=0)
+        self.plotFrame.grid(row=row, column=column, padx=5)
+        self.canvas.get_tk_widget().grid(row=0, column=1)
         self.canvas.draw()
 
     def replot(self) -> None:
@@ -215,13 +226,13 @@ class FloatSpinbox(ctk.CTkFrame):
             defaultVal: int          = 4,
             minVal:     int          = 4,
             maxVal:     int          = 20,
-            width:      int          = 100,
+            width:      int          = 300,
             height:     int          = 32,
             step_size:  int or float = 1,
             command                  = None,
         ) -> None:
 
-        super().__init__(master=master, width=width, height=height)
+        super().__init__(master=master, width=width, height=height, bg_color='transparent')
 
         self.step_size  = step_size
         self.command    = command
@@ -232,17 +243,17 @@ class FloatSpinbox(ctk.CTkFrame):
         self.grid_columnconfigure((0, 2), weight=0) # buttons don't expand
         self.grid_columnconfigure(1, weight=1)      # entry expands
 
-        self.label = ctk.CTkLabel(self, width=width, text=label, bg_color='transparent')
+        self.label = ctk.CTkLabel(self, width=width - height*3, text=label, bg_color='transparent')
         self.label.grid(row=0, column=0, columnspan=2, padx=10, pady=3)
 
-        self.subtract_button = ctk.CTkButton(self, text="-", width=height-6, height=height-6, command=self.subtract_button_callback)
+        self.subtract_button = ctk.CTkButton(self, text="-", width=height, height=height, command=self.subtract_button_callback)
         self.subtract_button.grid(row=0, column=2, padx=(3, 0), pady=3)
 
-        self.label = ctk.CTkLabel(self, width=width-(3*height), height=height-6)
+        self.label = ctk.CTkLabel(self, width=height, height=height)
         self.label.configure(text=str(self.defaultVal))
         self.label.grid(row=0, column=3, padx=3, pady=3, sticky="ew")
 
-        self.add_button = ctk.CTkButton(self, text="+", width=height-6, height=height-6, command=self.add_button_callback)
+        self.add_button = ctk.CTkButton(self, text="+", width=height, height=height, command=self.add_button_callback)
         self.add_button.grid(row=0, column=4, padx=(0, 3), pady=3)
 
     def add_button_callback(self):

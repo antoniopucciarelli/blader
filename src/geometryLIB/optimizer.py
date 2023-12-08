@@ -1,4 +1,5 @@
 import time
+import customtkinter                     as     ctk
 import numpy                             as     np 
 import matplotlib.pyplot                 as     plt 
 from   matplotlib                        import lines
@@ -572,10 +573,8 @@ def bladeFunc(
         upperLine:   interpolate.interp1d,
         lowerLine:   interpolate.interp1d,
         TEradius:    float,
-        nPoints:     int               = 200,
-        dataLine:    lines.Line2D      = None,
-        canvas:      FigureCanvasTkAgg = None,
-        printout:    bool              = False,
+        nPoints:     int  = 200,
+        printout:    bool = False,
     ) -> float:
     '''
     This function computes the error between a set of coordinates and a parametrized blade.
@@ -652,10 +651,7 @@ def bladeFunc(
         bladeLowerLine = interpolate.interp1d(x=bladeLower[:, 0], y=bladeLower[:, 1])
 
         # computing study points
-        # x = np.linspace(0.01, 0.99, nPoints)
-        x = [(1 - np.cos((2 * (ii + 1) - 1) / (2 * nPoints) * np.pi)) / 2  for ii in range(nPoints)]
-        # adding extremes
-        x = np.concatenate(([0], x, [1]))
+        x = chebyschev(start=0, end=1, nPoints=nPoints)
 
         # evaluating blade data
         bladeUpperY = bladeUpperLine(x)
@@ -682,28 +678,6 @@ def bladeFunc(
 
     if printout:
         print("RMSE = {0:.3E}".format(RMSE))
-    
-    print('\n\ntypes')
-    print(type(dataLine))
-    print(type(canvas))
-    print(dataLine)
-    print(canvas)
-    print('types\n\n')
-    
-    if isinstance(dataLine, lines.Line2D) and isinstance(canvas, FigureCanvasTkAgg):
-        print('in if')
-        
-        Xvec = np.concatenate([np.flip(x), x])
-        Yvec = np.concatenate([np.flip(bladeUpperY), bladeLowerY])
-        
-        print(Xvec)
-        print(Yvec)
-
-        dataLine.set_xdata(Xvec)
-        dataLine.set_ydata(Yvec)
-        canvas.draw()
-        
-        time.sleep(1)
 
     return RMSE
 
@@ -1234,9 +1208,7 @@ def optimizeGeometry(
         nMax:      int               = 2, 
         tol:       float             = 2.5E-5,
         NsuctLow:  int               = 4, 
-        NpressLow: int               = 4, 
-        dataLine:  lines.Line2D      = None,
-        canvas:    FigureCanvasTkAgg = None,
+        NpressLow: int               = 4,
         plot:      bool              = True,
         save:      bool              = False
     ) -> np.ndarray:
@@ -1397,9 +1369,7 @@ def optimizeGeometry(
         upperLine,
         lowerLine,
         TEradius,
-        nPoints,
-        dataLine,
-        canvas
+        nPoints
     )
 
     # boundaries generation    
@@ -1483,8 +1453,6 @@ def optimizeBlade(
         method:    str   = 'Nelder-Mead',
         nMax:      int   = 2, 
         tol:       float = 3E-5,
-        dataLine:  plt.Line2D        = None,
-        canvas:    FigureCanvasTkAgg = None,
         plot:      bool  = True,
         save:      bool  = False
     ) -> np.ndarray:
@@ -1553,7 +1521,7 @@ def optimizeBlade(
             costTemp = cost
 
             # blade computation
-            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, dataLine=dataLine, canvas=canvas, plot=plot, save=save)
+            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
             
             print('>>> OPTIMIZING FOR THETA = {0:.2f}'.format(angle))
             print('>>> OPTIMIZATION COST    = {0:+.3E}'.format(cost))

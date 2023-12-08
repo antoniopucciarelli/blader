@@ -8,8 +8,6 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        minsize = [3000, 1500]
-
         # customize Ctk 
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("blue")
