@@ -1456,7 +1456,7 @@ def optimizeBlade(
         tol:       float = 3E-5,
         plot:      bool  = True,
         save:      bool  = False
-    ) -> np.ndarray:
+    ) -> tuple[Blade, np.ndarray, np.ndarray, float, plt.Figure, float]:
     '''
     Parameters
     ----------

@@ -1,4 +1,5 @@
 import os
+import logging
 import matplotlib
 import numpy         as     np
 import customtkinter as     ctk
@@ -11,7 +12,7 @@ from matplotlib.figure                 import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class OptimizationFrame(ctk.CTkFrame):
-    def __init__(self, master: ctk.CTk):
+    def __init__(self, master: ctk.CTk, logger: logging.Logger):
         # initializing directory
         super().__init__(master)
 
@@ -33,6 +34,9 @@ class OptimizationFrame(ctk.CTkFrame):
         # setting up optimization properties 
         self.nMax    = 4 
         self.nPoints = 100
+
+        # logger definition
+        self.logger = logger
 
         # setting up frame
         self.setupFrame()
@@ -61,15 +65,15 @@ class OptimizationFrame(ctk.CTkFrame):
         self.loadButton.grid(row=0, column=0, pady=pady, padx=5, sticky='we')
 
         # sliders 
-        self.NsuctBox = FloatSpinbox(master=self.frame, label='SUCTION', width=270, step_size=1)
+        self.NsuctBox = FloatSpinbox(master=self.frame, logger=self.logger, label='SUCTION', width=270, step_size=1)
         self.NsuctBox.set(4)
         self.NsuctBox.grid(row=1, column=0, pady=pady, padx=5)
 
-        self.NpressBox = FloatSpinbox(master=self.frame, label='PRESSURE', width=270, step_size=1)
+        self.NpressBox = FloatSpinbox(master=self.frame, logger=self.logger, label='PRESSURE', width=270, step_size=1)
         self.NpressBox.set(4)
         self.NpressBox.grid(row=2, column=0, pady=pady, padx=5)
 
-        self.deltaAngleBox = FloatSpinbox(master=self.frame, label='DELTA ANGLE', width=270, step_size=1, minVal=1, maxVal=10)
+        self.deltaAngleBox = FloatSpinbox(master=self.frame, logger=self.logger, label='DELTA ANGLE', width=270, step_size=1, minVal=1, maxVal=10)
         self.deltaAngleBox.set(1)
         self.deltaAngleBox.grid(row=3, column=0, pady=pady, padx=5)
 
@@ -83,14 +87,20 @@ class OptimizationFrame(ctk.CTkFrame):
 
         # chart 
         self.plotCoordinates(row=0, column=1)
+        
+        # logging text
+        self.logText(row=0, column=2)
 
     def optimize(self) -> None:
         '''
         This function optimizes the blade.
         '''
 
+        # logging 
+        self.logger.info('>>> optimizing {0} into Kulfan parameters'.format(self.fileName))
+
         # optimizing blade
-        self.blade, self.kulfanParameters, self.bladeData, _, _, angle = optimizer.optimizeBlade(self.bladeCoords, self.NsuctBox.value, self.NpressBox.value, deltaAngle=self.deltaAngleBox.value, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
+        self.blade, self.kulfanParameters, self.bladeData, cost, _, angle = optimizer.optimizeBlade(self.bladeCoords, self.NsuctBox.value, self.NpressBox.value, deltaAngle=self.deltaAngleBox.value, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
 
         # normalizing data
         self.bladeData, _, _, _ = optimizer.bladeInOrigin(self.bladeData)
@@ -105,11 +115,16 @@ class OptimizationFrame(ctk.CTkFrame):
         except: 
             self.bladeLine, = self.axes.plot(self.bladeData[:,0], self.bladeData[:,1], 'r', linewidth=3)
 
-        print('>>> Nsuct       = {0:d}'.format(self.NsuctBox.value))
-        print('>>> Npress      = {0:d}'.format(self.NpressBox.value))
-        print('>>> DELTA ANGLE = {0:d}'.format(self.deltaAngleBox.value))
-        print('>>> ANGLE       = {0:f}'.format(angle))
-
+        # logging 
+        self.logger.info('>>> OPTIMIZATION RESULTS')
+        self.logger.info('\t>>> Nsuct = {0:d}'.format(self.NsuctBox.value))
+        self.logger.info('\t>>> Npress = {0:d}'.format(self.NpressBox.value))
+        self.logger.info('\t>>> DELTA ANGLE = {0:d}'.format(self.deltaAngleBox.value))
+        self.logger.info('\t>>> ANGLE = {0:.3f}'.format(angle))
+        self.logger.info('\t>>> cost = {0:.3E}'.format(cost))
+        self.blade.printout(logger=self.logger)
+        
+        # plottin data
         self.canvas.draw()
 
     def save(self) -> None:
@@ -127,8 +142,8 @@ class OptimizationFrame(ctk.CTkFrame):
         fileName = fileName[0:-4]
         
         # saving blade properties
-        self.blade.save(fileName)
-        print('>>> BLADE COORDINATES SAVED INTO: {0:s}*.dat'.format(fileName))
+        self.blade.save(fileName, self.logger)
+        self.logger.info('>>> blade coordinates are saved into: {0:s}*.dat'.format(fileName))
 
     def getData(self) -> None:
         '''
@@ -136,6 +151,12 @@ class OptimizationFrame(ctk.CTkFrame):
         '''
 
         self.getFileName()
+
+        # check on file name 
+        if self.fileName == '':
+            self.logger.info('>>> problem getting file name')
+            self.logger.info('>>> using last blade coordinates in the system')
+
         self.loadData()
         self.replot()
 
@@ -161,7 +182,7 @@ class OptimizationFrame(ctk.CTkFrame):
         This function loads the blade coordinates from a .dat file.
         '''
 
-        print('>>> READING DATA FROM {0}'.format(self.fileName))
+        self.logger.info('>>> reading data from {0}'.format(self.fileName))
         with open(self.fileName) as f:
                 bladeCoords      = np.loadtxt(f)
                 self.bladeCoords = np.array(bladeCoords)
@@ -186,9 +207,9 @@ class OptimizationFrame(ctk.CTkFrame):
         self.canvas = FigureCanvasTkAgg(figure, self.plotFrame)
 
         # create axes
-        axes = figure.add_subplot()
-        self.axes = axes
-        self.line, = self.axes.plot([], [], 'k', linewidth=3)
+        axes            = figure.add_subplot()
+        self.axes       = axes
+        self.line,      = self.axes.plot([], [], 'k', linewidth=3)
         self.bladeLine, = self.axes.plot([], [], 'r', linewidth=3)
 
         # trying plotting data 
@@ -196,7 +217,7 @@ class OptimizationFrame(ctk.CTkFrame):
             self.line.set_xdata(self.bladeCoords[:,0])
             self.line.set_ydata(self.bladeCoords[:,1])
         except:
-            print('>>> PROBLEM PRINTING DATA')
+            print('>>> INITIALIZING PLOTTING CHART')
         finally:
             self.axes.set_xlim(-0.1,1.1)
             self.axes.set_ylim(-1,1)
@@ -227,11 +248,36 @@ class OptimizationFrame(ctk.CTkFrame):
         self.axes.set_aspect('equal', adjustable='datalim')
         self.canvas.draw()
 
+        # logging
+        self.logger.info('>>> plotting data')
+
+    def logText(self, row: int, column: int) -> None:
+        '''
+        This function initializes the text box where the logging text has to be printed.
+        '''
+
+        # setting up text box
+        self.mytext = ctk.CTkTextbox(master=self, width=600, state="disabled")
+        self.mytext.grid(row=row, column=column, padx=5, pady=5, sticky='nswe')
+
+class MyHandlerText(logging.StreamHandler):
+    def __init__(self, textctrl):
+        logging.StreamHandler.__init__(self) # initialize parent
+        self.textctrl = textctrl
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.textctrl.configure(state="normal")
+        self.textctrl.insert("end", msg + "\n")
+        self.flush()
+        self.textctrl.configure(state="disabled")
+
 class FloatSpinbox(ctk.CTkFrame):
     def __init__(
             self,
             master:     ctk.CTkFrame,
             label:      str,
+            logger:     logging.Logger,
             defaultVal: int          = 4,
             minVal:     int          = 4,
             maxVal:     int          = 20,
@@ -242,13 +288,15 @@ class FloatSpinbox(ctk.CTkFrame):
         ) -> None:
 
         super().__init__(master=master, width=width, height=height, bg_color='transparent')
-
-        self.step_size  = step_size
-        self.command    = command
-        self.defaultVal = defaultVal 
-        self.value      = defaultVal
-        self.minVal     = minVal 
-        self.maxVal     = maxVal
+        
+        self.labelString = label
+        self.logger      = logger
+        self.step_size   = step_size
+        self.command     = command
+        self.defaultVal  = defaultVal 
+        self.value       = defaultVal
+        self.minVal      = minVal 
+        self.maxVal      = maxVal
 
         self.grid_columnconfigure((0, 2), weight=0) # buttons don't expand
         self.grid_columnconfigure(1, weight=1)      # entry expands
@@ -270,11 +318,13 @@ class FloatSpinbox(ctk.CTkFrame):
         value = min([int(self.label.cget('text')) + self.step_size, self.maxVal])
         self.value = value
         self.label.configure(text=str(value))
+        self.logger.info('>>> increasing DOF ({0}) in {1:s}'.format(value, self.labelString))
 
     def subtract_button_callback(self):
         value = max([int(self.label.cget('text')) - self.step_size, self.minVal])
         self.value = value
         self.label.configure(text=str(value))
+        self.logger.info('>>> decreasing DOF ({0}) in {1:s}'.format(value, self.labelString))
 
     def get(self) -> int or None:
         return int(self.label.cget('text'))

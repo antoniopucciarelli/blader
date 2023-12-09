@@ -1,3 +1,4 @@
+import logging
 import numpy as np 
 import matplotlib.pyplot as plt 
 from   geometryLIB import camberline, profileLine
@@ -280,7 +281,7 @@ class Blade():
 
         return Asuct, Apress, LEradius
 
-    def save(self, fileName: str) -> None:
+    def save(self, fileName: str, logger: logging.Logger = None) -> None:
         '''
         This function saves the normalized blade properties inside a text file. 
         '''
@@ -290,43 +291,66 @@ class Blade():
             data = np.stack([self.__camberline.x, self.__camberline.y, self.__pLine.x, self.__pLine.y, self.__sLine.x, self.__sLine.y], axis=1)
             np.savetxt(fname=f, X=data, delimiter=' ', header=header)
 
-        print('>>> BLADE COORDINATES SAVED INTO: {0:s}.dat'.format(fileName))
-
         with open(file=fileName + '_coords.dat', mode='w') as f:
             header = 'x, y'
             data = np.stack([np.concatenate([np.flip(self.__pLine.x[1::]), self.__sLine.x]), np.concatenate([np.flip(self.__pLine.y[1::]), self.__sLine.y])], axis=1)
             np.savetxt(fname=f, X=data, delimiter=' ', header=header)
 
-        print('>>> BLADE COORDINATES SAVED INTO: {0:s}_coords.dat'.format(fileName))
-
         with open(file=fileName + '_params.dat', mode='w') as f:
             header = 'stagger, inlet metal angle, outlet metal angle, LEradius, TEradius, wedgeAngle, Asuct[1:{0:d}], Apress[1:{1:d}], pitch'.format(len(self.__Asuct) - 1, len(self.__Apress) - 1)
             data = np.concatenate([[self.__stagger, self.__metalIn, self.__metalOut, self.__LEradius, self.__TEradius, self.__wedgeAngle], self.__Asuct[1::], self.__Apress[1::], [self.__pitch]]) 
             np.savetxt(fname=f, X=data, delimiter=' ', header=header)
-        
-        print('>>> BLADE COORDINATES SAVED INTO: {0:s}_params.dat'.format(fileName))
 
-    def printout(self) -> None:
+        if isinstance(logger, logging.Logger):
+            logger.info('>>> SAVING DATA')
+            logger.info('>>> blade coordinates saved into: {0:s}.dat'.format(fileName))
+            logger.info('>>> blade coordinates saved into: {0:s}_coords.dat'.format(fileName))
+            logger.info('>>> blade coordinates saved into: {0:s}_params.dat'.format(fileName))
+        else:
+            print('>>> BLADE COORDINATES SAVED INTO: {0:s}.dat'.format(fileName))
+            print('>>> BLADE COORDINATES SAVED INTO: {0:s}_coords.dat'.format(fileName))
+            print('>>> BLADE COORDINATES SAVED INTO: {0:s}_params.dat'.format(fileName))
+
+    def printout(self, logger: logging.Logger = None) -> None:
         '''
         This function prints out the blade properties.
         '''
 
-        print('>>> CAMBERLINE')
-        print('    >>> STAGGER      ANGLE = {0:+.2E} deg'.format(self.__camberline.stagger))
-        print('    >>> METAL INLET  ANGLE = {0:+.2E} deg'.format(self.__camberline.metalIn))
-        print('    >>> METAL OUTLET ANGLE = {0:+.2E} deg'.format(self.__camberline.metalOut))
-        print('>>> UPPER SIDE')
-        print('    >>> # KULFAN PARAMETERS      = {0:d}'.format(self.__pLine.N))
-        print('    >>> LEADING EDGE RADIUS      = {0:.2E}'.format(self.__pLine.LEradius))
-        print('    >>> KULFAN PARAMETERS (FULL) = {0}'.format(np.array2string(self.__pLine.A, precision=2)))
-        print('    >>> WEDGE ANGLE              = {0:.2E}'.format(self.__pLine.wedgeAngle))
-        print('    >>> TRAILING EDGE RADIUS     = {0:.2E}'.format(self.__pLine.TEradius))
-        print('>>> LOWER SIDE')
-        print('    >>> # KULFAN PARAMETERS      = {0:d}'.format(self.__sLine.N))
-        print('    >>> LEADING EDGE RADIUS      = {0:.2E}'.format(self.__sLine.LEradius))
-        print('    >>> KULFAN PARAMETERS (FULL) = {0}'.format(np.array2string(self.__sLine.A, precision=2)))
-        print('    >>> WEDGE ANGLE              = {0:.2E}'.format(self.__sLine.wedgeAngle))
-        print('    >>> TRAILING EDGE RADIUS     = {0:.2E}'.format(self.__sLine.TEradius))
+        if isinstance(logger, logging.Logger):
+            logger.info('>>> BLADE PROPERTIES')
+            logger.info('>>> CAMBERLINE')
+            logger.info('    >>> STAGGER      ANGLE = {0:+.2E} deg'.format(self.__camberline.stagger))
+            logger.info('    >>> METAL INLET  ANGLE = {0:+.2E} deg'.format(self.__camberline.metalIn))
+            logger.info('    >>> METAL OUTLET ANGLE = {0:+.2E} deg'.format(self.__camberline.metalOut))
+            logger.info('>>> UPPER SIDE')
+            logger.info('    >>> # KULFAN PARAMETERS = {0:d}'.format(self.__pLine.N))
+            logger.info('    >>> LEADING EDGE RADIUS = {0:.2E}'.format(self.__pLine.LEradius))
+            logger.info('    >>> KULFAN PARAMETERS (FULL) = {0}'.format(np.array2string(self.__pLine.A, precision=2)))
+            logger.info('    >>> WEDGE ANGLE = {0:.2E}'.format(self.__pLine.wedgeAngle))
+            logger.info('    >>> TRAILING EDGE RADIUS = {0:.2E}'.format(self.__pLine.TEradius))
+            logger.info('>>> LOWER SIDE')
+            logger.info('    >>> # KULFAN PARAMETERS = {0:d}'.format(self.__sLine.N))
+            logger.info('    >>> LEADING EDGE RADIUS = {0:.2E}'.format(self.__sLine.LEradius))
+            logger.info('    >>> KULFAN PARAMETERS (FULL) = {0}'.format(np.array2string(self.__sLine.A, precision=2)))
+            logger.info('    >>> WEDGE ANGLE = {0:.2E}'.format(self.__sLine.wedgeAngle))
+            logger.info('    >>> TRAILING EDGE RADIUS = {0:.2E}'.format(self.__sLine.TEradius))
+        else:
+            print('>>> CAMBERLINE')
+            print('    >>> STAGGER      ANGLE = {0:+.2E} deg'.format(self.__camberline.stagger))
+            print('    >>> METAL INLET  ANGLE = {0:+.2E} deg'.format(self.__camberline.metalIn))
+            print('    >>> METAL OUTLET ANGLE = {0:+.2E} deg'.format(self.__camberline.metalOut))
+            print('>>> UPPER SIDE')
+            print('    >>> # KULFAN PARAMETERS      = {0:d}'.format(self.__pLine.N))
+            print('    >>> LEADING EDGE RADIUS      = {0:.2E}'.format(self.__pLine.LEradius))
+            print('    >>> KULFAN PARAMETERS (FULL) = {0}'.format(np.array2string(self.__pLine.A, precision=2)))
+            print('    >>> WEDGE ANGLE              = {0:.2E}'.format(self.__pLine.wedgeAngle))
+            print('    >>> TRAILING EDGE RADIUS     = {0:.2E}'.format(self.__pLine.TEradius))
+            print('>>> LOWER SIDE')
+            print('    >>> # KULFAN PARAMETERS      = {0:d}'.format(self.__sLine.N))
+            print('    >>> LEADING EDGE RADIUS      = {0:.2E}'.format(self.__sLine.LEradius))
+            print('    >>> KULFAN PARAMETERS (FULL) = {0}'.format(np.array2string(self.__sLine.A, precision=2)))
+            print('    >>> WEDGE ANGLE              = {0:.2E}'.format(self.__sLine.wedgeAngle))
+            print('    >>> TRAILING EDGE RADIUS     = {0:.2E}'.format(self.__sLine.TEradius))
 
     def plot(
             self, 
