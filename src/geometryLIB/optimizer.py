@@ -1277,7 +1277,7 @@ def optimizeGeometry(
         NpressLow: int   = 4,
         plot:      bool  = True,
         save:      bool  = False
-    ) -> np.ndarray:
+    ) -> tuple[Blade, np.ndarray, np.ndarray, float, plt.Figure, float]:
     '''
     This function converts a coordinate based blade geometry into a Kulfan parametrization based geometry.
     

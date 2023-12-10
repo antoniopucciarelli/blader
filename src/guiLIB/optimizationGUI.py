@@ -108,10 +108,10 @@ class OptimizationFrame(ctk.CTkFrame):
         else:
             maxX           = max(self.bladeData[:,0])
             self.bladeData = self.bladeData / maxX 
-
-        # updating blade properties 
-        # deltaY = abs(self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - abs(self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
-        # self.bladeData[:,1] = self.bladeData[:,1] - deltaY 
+            
+            # updating blade properties 
+            deltaY = abs(self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - abs(self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
+            self.bladeData[:,1] = self.bladeData[:,1] - deltaY 
 
         try:
             self.bladeLine.set_xdata(self.bladeData[:,0])
@@ -214,7 +214,7 @@ class OptimizationFrame(ctk.CTkFrame):
         axes            = figure.add_subplot()
         self.axes       = axes
         self.line,      = self.axes.plot([], [], 'k', linewidth=3)
-        self.bladeLine, = self.axes.plot([], [], 'r', linewidth=3)
+        self.bladeLine, = self.axes.plot([], [], 'r', linewidth=4.5)
 
         # trying plotting data 
         try:
