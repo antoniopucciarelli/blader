@@ -345,15 +345,16 @@ class ProfileLine():
             # computing thickness
             X,   Y   = self.__thicknessDistribution(camberline=camberline, x=x)
             XTE, YTE = self.__TEdistribution(camberline=camberline, x=x)
-
+        
         # allocating data 
         # normalized coordintates
         x = x + X + XTE
         y = y + Y + YTE
+
         # coordinates
         X = x * camberline.chord
         Y = y * camberline.chord
-
+        
         return x, y, X, Y
     
     def compute(self, camberline: Camberline) -> None:

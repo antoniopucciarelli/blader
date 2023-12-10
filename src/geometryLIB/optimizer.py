@@ -1,13 +1,10 @@
 import time
-import customtkinter                     as     ctk
-import numpy                             as     np 
-import matplotlib.pyplot                 as     plt 
-from   matplotlib                        import lines
-from   scipy                             import misc, integrate, interpolate, optimize 
-from   scipy.optimize                    import Bounds    
-from   geometryLIB.blade                 import Blade 
-from   geometryLIB.camberline            import Camberline
-from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy                  as     np 
+import matplotlib.pyplot      as     plt 
+from   scipy                  import misc, integrate, interpolate, optimize 
+from   scipy.optimize         import Bounds    
+from   geometryLIB.blade      import Blade 
+from   geometryLIB.camberline import Camberline
 
 def chebyschev(start: float, end: float, nPoints: int) -> np.ndarray:
     '''
@@ -38,6 +35,35 @@ def chebyschev(start: float, end: float, nPoints: int) -> np.ndarray:
     x = start + x * (end - start)
 
     return x 
+
+def checkNAN(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    '''
+    This function checks if the blade coordinates array have a NAN element in it.
+
+    Parameters
+    ----------
+    `x`: np.ndarray
+        array which stores the abscissa of the coordinates array.
+    `y`: np.ndarray
+        array which stores the ordinates of the coordinates array.
+    
+    Returns
+    -------
+    `x`: np.ndarray
+        array which stores the abscissa of the coordinates array without NAN element.
+    `y`: np.ndarray
+        array which stores the ordinates of the coordinates array without NAN element.
+    '''
+    
+    if str(x[0]) == 'nan':
+        x = x[1::]
+        y = y[1::]
+    
+    if str(x[-1]) == 'nan':
+        x = x[0:-1]
+        y = y[0:-1]
+
+    return x, y
 
 def bladeInOrigin(data: list | np.ndarray, scale: bool = True) -> tuple[np.ndarray, float, float, float]:
     '''
@@ -104,11 +130,12 @@ def bladeTEradius(data: list | np.ndarray, chord: float = 1) -> float:
     return TEradius
 
 def bladeLEpos(
-        upperLine: interpolate.interp1d, 
-        lowerLine: interpolate.interp1d, 
+        upperLine: interpolate._interpolate.interp1d, 
+        lowerLine: interpolate._interpolate.interp1d, 
         dx:        float = 1E-3, 
         maxX:      float = 0.1, 
         nPoints:   int   = 30, 
+        bothSide:  bool  = False,
         plot:      bool  = False
     ) -> tuple[float, float, float, float]:
     '''
@@ -126,6 +153,8 @@ def bladeLEpos(
         blade interval upper boundary
     `nPoints`: int 
         number of points used for the leading edge blade analysis
+    `bothSide`: bool 
+        boolean value which enables the leading edge position of the blade in the lower part of the blade EVEN being reversed by afore by the program
     `plot`: bool    
         boolean value for the blade properties plotting
 
@@ -157,23 +186,30 @@ def bladeLEpos(
     lowerCurvature = np.abs(lowerLineDerDer) / (1 + lowerLineDer**2)**(3/2)
 
     # getting max curvature position
-    if max(upperCurvature) > max(lowerCurvature):
-        maxPos = np.argmax(upperCurvature)
-        position = True
-    else:
-        maxPos = np.argmax(lowerCurvature)
-        position = False
+    if bothSide:
+        if max(upperCurvature) > max(lowerCurvature):
+            maxPos = np.argmax(upperCurvature)
+            position = True
+        else:
+            maxPos = np.argmax(lowerCurvature)
+            position = False
 
-    # getting axial chord max curvature position
-    xLE = x[maxPos]
-    if position:
+        # getting axial chord max curvature position
+        xLE = x[maxPos]
+        if position:
+            yLE     = upperLine(xLE)
+            yPrime  = misc.derivative(func=upperLine, x0=xLE, n=1, dx=dx)
+            y2Prime = misc.derivative(func=upperLine, x0=xLE, n=2, dx=dx)
+        else:
+            yLE     = lowerLine(xLE)
+            yPrime  = misc.derivative(func=lowerLine, x0=xLE, n=1, dx=dx)
+            y2Prime = misc.derivative(func=lowerLine, x0=xLE, n=2, dx=dx)
+    else:
+        maxPos  = np.argmax(upperCurvature)
+        xLE     = x[maxPos]
         yLE     = upperLine(xLE)
         yPrime  = misc.derivative(func=upperLine, x0=xLE, n=1, dx=dx)
         y2Prime = misc.derivative(func=upperLine, x0=xLE, n=2, dx=dx)
-    else:
-        yLE     = lowerLine(xLE)
-        yPrime  = misc.derivative(func=lowerLine, x0=xLE, n=1, dx=dx)
-        y2Prime = misc.derivative(func=lowerLine, x0=xLE, n=2, dx=dx)
 
     # axial chord computation
     axialChord = 1 - xLE 
@@ -188,7 +224,7 @@ def bladeLEpos(
 
     if plot:
         # plotting data
-        fig = plt.figure()
+        fig = plt.figure(figsize=(10,10))
 
         # axes generation
         ax = fig.add_subplot(1,4,1)
@@ -202,7 +238,7 @@ def bladeLEpos(
         ax.set_aspect('equal')
         ax.set_xlabel('x')
         ax.set_ylabel('y')
-        ax.legend(bbox_to_anchor=(0.0, -0.5), loc='upper left')
+        ax.legend(bbox_to_anchor=(-0.4, -0.5), loc='upper left')
 
         # axes generation
         ax1 = fig.add_subplot(1,4,2)
@@ -215,7 +251,7 @@ def bladeLEpos(
         ax1.set_title(r'$y^{\prime}$')
         ax1.set_xlabel('x')
         ax1.set_ylabel('y')
-        ax1.legend(bbox_to_anchor=(0.0, -0.5), loc='upper left')
+        fig.legend(bbox_to_anchor=(-0.1, -1), loc='upper left')
 
         # axes generation
         ax2 = fig.add_subplot(1,4,3)
@@ -228,7 +264,7 @@ def bladeLEpos(
         ax2.set_title(r'$y^{\prime \prime}$')
         ax2.set_xlabel('x')
         ax2.set_ylabel('y')
-        ax2.legend(bbox_to_anchor=(0.0, -0.5), loc='upper left')
+        # ax2.legend(bbox_to_anchor=(0.0, -0.5), loc='upper left')
 
         # axes generation
         ax3 = fig.add_subplot(1,4,4)
@@ -240,7 +276,7 @@ def bladeLEpos(
         ax3.set_title(r'$\kappa$')
         ax3.set_xlabel('x')
         ax3.set_ylabel('y')
-        ax3.legend(bbox_to_anchor=(0.0, -0.5), loc='upper left')
+        # ax3.legend(bbox_to_anchor=(-0.2, -0.5), loc='upper left')
 
         plt.tight_layout()
         plt.show()
@@ -283,7 +319,13 @@ def rotate(data: list | np.ndarray, theta: float, resize: bool = False) -> np.nd
 
     return data
 
-def plotCoords(data: list | np.ndarray, ax: plt.Axes = None, theta: float = 0.0, resize: bool = False, base: bool = True) -> None:
+def plotCoords(
+        data:   list | np.ndarray, 
+        ax:     plt.Axes = None, 
+        theta:  float    = 0.0, 
+        resize: bool     = False, 
+        base:   bool     = True
+    ) -> None:
     '''
     This function plots the coordinate based data of the blade geometry.
     '''
@@ -298,7 +340,7 @@ def plotCoords(data: list | np.ndarray, ax: plt.Axes = None, theta: float = 0.0,
         ax = fig.add_subplot(1,1,1)
 
     # getting lower side and upper side of the blade geometry 
-    _, _, upperPart, lowerPart, upperChord, lowerChord = interpolateData(data=data)
+    _, _, _, _, upperPart, lowerPart, upperChord, lowerChord = interpolateData(data=data, kind='linear')
 
     # plotting data
     if base:
@@ -314,7 +356,11 @@ def plotCoords(data: list | np.ndarray, ax: plt.Axes = None, theta: float = 0.0,
     ax.set_ylabel('y')
     plt.tight_layout()
 
-def interpolateData(data: list | np.ndarray, plot: bool = False) -> tuple:
+def interpolateData(
+        data: list | np.ndarray, 
+        kind: str = 'cubic', 
+        plot: bool = False
+    ) -> tuple[interpolate._interpolate.interp1d, interpolate._interpolate.interp1d, np.ndarray, np.ndarray, float, float]:
     '''
     This function interpolates the geometry data from the target blade dataset.
 
@@ -322,14 +368,16 @@ def interpolateData(data: list | np.ndarray, plot: bool = False) -> tuple:
     ----------
     `data`: list | np.ndarray
         2D vector which stores the target blade geometry in [x, y] coordinates.
+    `kind`: str 
+        interpolation properties.
     `plot`: bool
         boolean value for the plotting of the operation results.
 
     Returns
     -------
-    `upperLine`: interpolate.interp1d 
+    `upperLine`: interpolate._interpolate.interp1d 
         function object which parametrizes the upper part of the blade. The upper part of the blade starts from the most left point of the geometry to the most right point of the geometry.
-    `lowerLine`: interpolate.interp1d 
+    `lowerLine`: interpolate._interpolate.interp1d
         function object which parametrizes the lower part of the blade. The lower part of the blade starts from the most left point of the geometry to the most right point of the geometry.
     `upperPart`: np.ndarray
         2D vector which stores the upper part coordinates of the blade. 
@@ -352,14 +400,18 @@ def interpolateData(data: list | np.ndarray, plot: bool = False) -> tuple:
     upperChord = np.max(upperPart[:, 0]) - np.min(upperPart[:, 0])
     lowerChord = np.max(lowerPart[:, 0]) - np.min(lowerPart[:, 0])
     
+    # interpolating data 
+    upperLineReal = interpolate.interp1d(upperPart[:, 0], upperPart[:, 1], kind=kind)
+    lowerLineReal = interpolate.interp1d(lowerPart[:, 0], lowerPart[:, 1], kind=kind)
+    
     # normalize data 
     upperPart = upperPart / upperChord 
     lowerPart = lowerPart / lowerChord 
 
-    # interpolating data 
-    upperLine = interpolate.interp1d(upperPart[:, 0], upperPart[:, 1])
-    lowerLine = interpolate.interp1d(lowerPart[:, 0], lowerPart[:, 1])
-
+    # interpolating normalized data
+    upperLine = interpolate.interp1d(upperPart[:, 0], upperPart[:, 1], kind=kind)
+    lowerLine = interpolate.interp1d(lowerPart[:, 0], lowerPart[:, 1], kind=kind)
+    
     # testing data 
     xVec = np.linspace(0.01, 0.99, 100)
 
@@ -410,7 +462,7 @@ def interpolateData(data: list | np.ndarray, plot: bool = False) -> tuple:
         plt.tight_layout()
         plt.show()
 
-    return upperLine, lowerLine, upperPart, lowerPart, upperChord, lowerChord
+    return upperLine, lowerLine, upperLineReal, lowerLineReal, upperPart, lowerPart, upperChord, lowerChord
 
 def dataExtraction(
         x:           list | np.ndarray, 
@@ -466,7 +518,45 @@ def bladeDataExtraction(
         Npress:   int   = None,
         blade:    Blade = None,
         TEradius: float = 0.0,
-    ) -> float:
+        kind:     str   = 'cubic'
+    ) -> tuple[interpolate._interpolate.interp1d, interpolate._interpolate.interp1d, np.ndarray, np.ndarray, float, float, float]:
+    '''
+    This function extracts the main coordinates of a blade under Kulfan parametrization.
+
+    Returns
+    -------
+    `x`: list | np.ndarray  
+        array which stores Kulfan parameters
+    `Nsuct`: int 
+        suction side number of degree of freedom
+    `Npress`: int 
+        pressure side number of degree of freedom 
+    `blade`: Blade
+        `geometryLIB.blade.Blade` object
+    `TEradius`: float 
+        blade trailing edge radius
+    `kind`: str
+        string which defines the interpolation properties of data
+    
+    Returns
+    -------
+    `bladeUpperLine`: interpolate._interpolate.interp1d
+        upper line coordinates interpolation object
+    `bladeLowerLine`: interpolate._interpolate.interp1d
+        lower line coordinates interpolation object
+    `camberlineLine`: interpolate._interpolate.interp1d
+        camberline coordinates interpolation object
+    `bladeData`: np.ndarray
+        2D array which stores the blade coordinates 
+    `camberlineData`: np.ndarray
+        2D array which store the camberline coordinates
+    `upperChord`: float
+        upper side axial chord
+    `lowerChord`: float
+        lower side axial chord
+    `camberlineChord`: float 
+        camberline axial chord
+    '''
 
     # getting data 
     if x is not None:
@@ -515,11 +605,11 @@ def bladeDataExtraction(
     camberlineData = camberlineData / camberlineChord
 
     # linear data interpolation 
-    bladeUpperLine = interpolate.interp1d(x=bladeUpper[:, 0], y=bladeUpper[:, 1])
-    bladeLowerLine = interpolate.interp1d(x=bladeLower[:, 0], y=bladeLower[:, 1])
-    camberlineLine = interpolate.interp1d(x=camberlineData[:, 0], y=camberlineData[:, 1])
-
-    return bladeUpperLine, bladeLowerLine, camberlineLine, upperChord, bladeData, camberlineData, lowerChord, camberlineChord
+    bladeUpperLine = interpolate.interp1d(x=bladeUpper[:, 0],     y=bladeUpper[:, 1],     kind=kind)
+    bladeLowerLine = interpolate.interp1d(x=bladeLower[:, 0],     y=bladeLower[:, 1],     kind=kind)
+    camberlineLine = interpolate.interp1d(x=camberlineData[:, 0], y=camberlineData[:, 1], kind=kind)
+ 
+    return bladeUpperLine, bladeLowerLine, camberlineLine, bladeData, camberlineData, upperChord, lowerChord, camberlineChord
 
 def camberlineFunc(
         x:           list | np.ndarray, 
@@ -613,6 +703,10 @@ def bladeFunc(
 
         # getting blade coordinates with the most left point as origin
         XPS, YPS, XSS, YSS, _, _ = blade.coordinate()
+        
+        # checking NAN elements
+        XPS, YPS = checkNAN(XPS, YPS)
+        XSS, YSS = checkNAN(XSS, YSS)
 
         # inverting coordinates 
         XPS = np.flip(XPS)
@@ -672,8 +766,7 @@ def bladeFunc(
 
         # computing total RMSE
         RMSE = np.sqrt(RMSEupper + RMSElower) / (2 * nPoints)
-
-    except:
+    except: 
         RMSE = np.NAN
 
     if printout:
@@ -813,12 +906,10 @@ def findCircle(
 
     return radius
 
-def computeGuess(
+def computeWedgeAngle(
         data:      list | np.ndarray, 
         upperData: list | np.ndarray, 
-        lowerData: list | np.ndarray, 
-        inletPos:  int, 
-        outletPos: int
+        lowerData: list | np.ndarray
     ) -> tuple:
     '''
     This function computes the initial guess for a camberline approximation.
@@ -837,36 +928,13 @@ def computeGuess(
         array position for the computation of the outlet metal angle 
 
     Returns
-    -------
-    `stagger`: float 
-        blade stagger angle 
-    `metalInlet`: float 
-        inlet metal angle
-    `metalOutlet`: float 
-        outlet metal angle 
+    ------- 
     `wedgeAngle`: float
         trailing edge wedge angle 
     '''
-    
-    # stagger angle computation 
-    TEpoint = (data[-1, :] + data[0, :]) / 2
-    stagger = np.rad2deg(np.arctan(TEpoint[1] / TEpoint[0]))
-
-    # metal inlet angle computation 
-    inletSlopePoint = (upperData[inletPos, :] + lowerData[inletPos, :]) / 2
-    metalInlet = np.rad2deg(np.arctan(inletSlopePoint[1] / inletSlopePoint[0]))
-
-    # metal outlet angle computation
-    outletSlopePoint = (upperData[- outletPos, :] + lowerData[- outletPos, :]) / 2
-    metalOutlet = np.rad2deg(np.arctan((TEpoint[1] - outletSlopePoint[1]) / (TEpoint[0] - outletSlopePoint[0])))
-
-    print('>>> COMPUTED DATA')
-    print('>>> TRAILING EDGE POSITION   = {0}'.format(TEpoint))
-    print('>>> STAGGER ANGLE            = {0:+.3E} '.format(stagger))
-    print('>>> INLET METAL ANGLE        = {0:+.3E} '.format(metalInlet))
-    print('>>> OUTLET METAL ANGLE       = {0:+.3E} '.format(metalOutlet))
 
     # wedge angle computation
+    TEpoint = (data[-1, :] + data[0, :]) / 2
     if (data[0, 0] - data[-1, 0] == 0) and (data[0, 1] - data[-1, 1] == 0):
         # wedge angle vector allocation
         upperVec = TEpoint - upperData[1,:]
@@ -881,7 +949,7 @@ def computeGuess(
         wedgeAngle = 15 
         print('>>> WEDGE ANGLE (BY DEFAULT) = {0:+.3E} '.format(wedgeAngle))
 
-    return stagger, metalInlet, metalOutlet, wedgeAngle
+    return wedgeAngle
 
 def camberlineAnalysis(data: list | np.ndarray, nPoints: int = 100, plot: bool = False) -> tuple[bool, np.ndarray]:
     '''
@@ -1169,7 +1237,7 @@ def optimizeCamberline(
         # plotting blade profile lines and computed camberline
         ax.plot(x,           yUpper,      color='orange',  linestyle='solid', linewidth=3, label='DATA.UPPER-SIDE')
         ax.plot(x,           yLower,      color='skyblue', linestyle='solid', linewidth=3, label='DATA.LOWER-SIDE')
-        ax.plot(xCamberline, yCamberline, color='r',       linestyle='-.',    linewidth=3, label='DATA.CAMBERLINE-UPLOW)')
+        ax.plot(xCamberline, yCamberline, color='r',       linestyle='-.',    linewidth=3, label='DATA.CAMBERLINE-UPER/LOWER')
         # ax propeties
         ax.legend(bbox_to_anchor=(0,-0.5), loc='upper left')
         ax.grid(visible=True, linestyle='dotted')
@@ -1199,18 +1267,16 @@ def optimizeGeometry(
         data:      list | np.ndarray, 
         Nsuct:     int, 
         Npress:    int, 
-        angle:     float             = 0.0,
-        LEradius:  float             = 2.5e-2, 
-        nPoints:   int               = 100, 
-        inletPos:  int               = 3, 
-        outletPos: int               = 3,  
-        method:    str               = 'Nelder-Mead',
-        nMax:      int               = 2, 
-        tol:       float             = 2.5E-5,
-        NsuctLow:  int               = 4, 
-        NpressLow: int               = 4,
-        plot:      bool              = True,
-        save:      bool              = False
+        angle:     float = 0.0,
+        LEradius:  float = 2.5e-2, 
+        nPoints:   int   = 100, 
+        method:    str   = 'Nelder-Mead',
+        nMax:      int   = 2, 
+        tol:       float = 1.4e-4,
+        NsuctLow:  int   = 4, 
+        NpressLow: int   = 4,
+        plot:      bool  = True,
+        save:      bool  = False
     ) -> np.ndarray:
     '''
     This function converts a coordinate based blade geometry into a Kulfan parametrization based geometry.
@@ -1268,27 +1334,27 @@ def optimizeGeometry(
     data, _, _, _ = bladeInOrigin(data, scale=True)
 
     # camberline analysis and flipping data analysis
-    flip, __data = camberlineAnalysis(data=data, plot=False)
+    flip, __data = camberlineAnalysis(data=data, plot=True)
         
     # rotating blade geometry for the optimization
     if angle != 0:
         __data = rotate(__data, angle, resize=False)
 
-    # moving blade into origin
-    data, _, _, _ = bladeInOrigin(data, scale=True)
+        # moving blade into origin
+        __data, _, _, _ = bladeInOrigin(__data, scale=True)
 
     # intepolating data 
-    upperLine, lowerLine, upperData, lowerData, upperChord, lowerChord = interpolateData(__data)
+    upperLine, lowerLine, _, _, upperData, lowerData, upperChord, lowerChord = interpolateData(__data, plot=False)
 
     # leading edge position
-    xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, plot=False)
+    xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, bothSide=False, plot=True)
 
     # camberline approximation
-    stagger, metalInlet, metalOutlet, yCamberlineOptimized, camberlineCost = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=False)
-    print('>>> CLINE COST = {0:.3E}'.format(camberlineCost))
+    stagger, metalInlet, metalOutlet, _, camberlineCost = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=True)
+    print('>>> CAMBERLINE INTERPOLATION COST = {0:.3E}'.format(camberlineCost))
 
     # computing wedge angle 
-    _, _, _, wedgeAngle = computeGuess(data=__data, upperData=upperData, lowerData=lowerData, inletPos=inletPos, outletPos=outletPos)    
+    wedgeAngle = computeWedgeAngle(data=__data, upperData=upperData, lowerData=lowerData)    
 
     # trailing edge radius computation 
     TEradius = bladeTEradius(data=__data, chord=axialChord)
@@ -1321,7 +1387,8 @@ def optimizeGeometry(
         upperLine,
         lowerLine,
         TEradius,
-        nPoints
+        nPoints,
+        False
     )
 
     # boundaries generation    
@@ -1348,8 +1415,8 @@ def optimizeGeometry(
     lowDOFblade = Blade(stagger=stagger, metalIn=metalIn, metalOut=metalOut, chord=1.0, pitch=1.0, Asuct=Asuct, Apress=Apress, LEradius=LEradius, TEradius=TEradius, wedgeAngle=wedgeAngle, origin=True)
     
     # blade scaling and data allocation
-    Asuct, Apress, LEradius = lowDOFblade.scale(Nsuct=Nsuct, Npress=Npress)
-
+    Asuct, Apress, LEradius = lowDOFblade.scale(Nsuct=Nsuct, Npress=Npress, plot=True)
+    
     # setting up initial guess
     x = [
         stagger,
@@ -1369,14 +1436,15 @@ def optimizeGeometry(
         upperLine,
         lowerLine,
         TEradius,
-        nPoints
+        nPoints,
+        True
     )
 
     # boundaries generation    
     bounds = boundsGenerator(stagger=stagger, metalInlet=metalInlet, metalOutlet=metalOutlet, Nsuct=Nsuct, Npress=Npress)
 
     # checking camberline properties: if RMSE/cost computed -> good to go
-    cost = bladeFunc(x, Nsuct, Npress, upperLine, lowerLine, TEradius, nPoints)
+    cost = bladeFunc(x, Nsuct, Npress, upperLine, lowerLine, TEradius, nPoints, True)
     print('>>> INITIAL RMSE = {0:.3E}'.format(cost))
 
     # setting study parameters
@@ -1416,8 +1484,8 @@ def optimizeGeometry(
         ax = fig.add_subplot(1,1,1)
 
         # getting from optimization's result
-        _, _, _, upperChord, bladeData, _, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
-        bladeData = rotate(bladeData, 0, resize=True)
+        _, _, _, bladeData, _, upperChord, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius, kind='linear')
+        # bladeData = rotate(bladeData, 0, resize=True)
         ax.plot(bladeData[:,0], bladeData[:,1], 'k', linewidth=5, label='RESULT.BLADE')
     
         # plotting coordinates
@@ -1436,26 +1504,24 @@ def optimizeGeometry(
         bladeData = rotate(bladeData, -angle, resize=False )
     else:
         fig = None 
-        _, _, _, upperChord, bladeData, _, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
+        _, _, _, bladeData, _, upperChord, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
         bladeData = rotate(bladeData, -angle, resize=False)
         
     return blade, kulfanParameters, bladeData, cost, fig, flip
 
 def optimizeBlade(
-        data:      list | np.ndarray, 
-        Nsuct:     int, 
-        Npress:    int, 
-        angle:     float = 0.0,
+        data:       list | np.ndarray, 
+        Nsuct:      int, 
+        Npress:     int, 
+        angle:      float = 0.0,
         deltaAngle: float = 2.5,
-        LEradius:  float = 2.5e-2, 
-        nPoints:   int   = 100, 
-        inletPos:  int   = 3, 
-        outletPos: int   = 3,  
-        method:    str   = 'Nelder-Mead',
-        nMax:      int   = 2, 
-        tol:       float = 3E-5,
-        plot:      bool  = True,
-        save:      bool  = False
+        LEradius:   float = 2.5e-2, 
+        nPoints:    int   = 100,
+        method:     str   = 'Nelder-Mead',
+        nMax:       int   = 2, 
+        tol:        float = 1.4e-4,
+        plot:       bool  = True,
+        save:       bool  = False
     ) -> tuple[Blade, np.ndarray, np.ndarray, float, plt.Figure, float]:
     '''
     Parameters
@@ -1510,7 +1576,7 @@ def optimizeBlade(
     '''
 
     if angle != 0: 
-        blade, kulfanParameters, bladeData, cost, fig, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+        blade, kulfanParameters, bladeData, cost, fig, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
         print('>>> OPTIMIZATION COST = {0:+.3E}'.format(cost))
     else:
         # setting up initial data
@@ -1522,7 +1588,7 @@ def optimizeBlade(
             costTemp = cost
 
             # blade computation
-            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, inletPos=inletPos, outletPos=outletPos, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
             
             print('>>> OPTIMIZING FOR THETA = {0:.2f}'.format(angle))
             print('>>> OPTIMIZATION COST    = {0:+.3E}'.format(cost))

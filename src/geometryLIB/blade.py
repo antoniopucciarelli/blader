@@ -244,7 +244,7 @@ class Blade():
             Nsuct:  int, 
             Npress: int, 
             plot:   bool = False
-        ) -> None:
+        ) -> tuple[np.ndarray, np.ndarray, float]:
         '''
         This function scales the blade geometry.
 

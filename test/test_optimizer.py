@@ -67,7 +67,7 @@ class TestOptimizer(unittest.TestCase):
                 
                 # optimizing blade with respect to different DOF
                 # blade, kulfanParameters, bladeData, cost, fig, angle
-                _, _, _, _, fig, _ = optimizer.optimizeBlade(bladeCoords, Nsuct, Npress, nMax=nMax, nPoints=nPoints, plot=True, save=True)
+                _, _, _, _, fig, _ = optimizer.optimizeBlade(bladeCoords, Nsuct, Npress, angle=10, nMax=nMax, nPoints=nPoints, plot=True, save=False)
                 pdf.savefig(figure=fig)
                 
         pdf.close()
