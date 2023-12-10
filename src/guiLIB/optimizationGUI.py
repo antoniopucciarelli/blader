@@ -103,11 +103,15 @@ class OptimizationFrame(ctk.CTkFrame):
         self.blade, self.kulfanParameters, self.bladeData, cost, _, angle = optimizer.optimizeBlade(self.bladeCoords, self.NsuctBox.value, self.NpressBox.value, deltaAngle=self.deltaAngleBox.value, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
 
         # normalizing data
-        self.bladeData, _, _, _ = optimizer.bladeInOrigin(self.bladeData)
+        if angle == 0:
+            self.bladeData, _, _, _ = optimizer.bladeInOrigin(self.bladeData)
+        else:
+            maxX           = max(self.bladeData[:,0])
+            self.bladeData = self.bladeData / maxX 
 
         # updating blade properties 
-        deltaY = abs(self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - abs(self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
-        self.bladeData[:,1] = self.bladeData[:,1] - deltaY 
+        # deltaY = abs(self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - abs(self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
+        # self.bladeData[:,1] = self.bladeData[:,1] - deltaY 
 
         try:
             self.bladeLine.set_xdata(self.bladeData[:,0])

@@ -1334,7 +1334,7 @@ def optimizeGeometry(
     data, _, _, _ = bladeInOrigin(data, scale=True)
 
     # camberline analysis and flipping data analysis
-    flip, __data = camberlineAnalysis(data=data, plot=True)
+    flip, __data = camberlineAnalysis(data=data, plot=False)
         
     # rotating blade geometry for the optimization
     if angle != 0:
@@ -1347,10 +1347,10 @@ def optimizeGeometry(
     upperLine, lowerLine, _, _, upperData, lowerData, upperChord, lowerChord = interpolateData(__data, plot=False)
 
     # leading edge position
-    xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, bothSide=False, plot=True)
+    xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, bothSide=False, plot=False)
 
     # camberline approximation
-    stagger, metalInlet, metalOutlet, _, camberlineCost = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=True)
+    stagger, metalInlet, metalOutlet, _, camberlineCost = optimizeCamberline(upperLine=upperLine, lowerLine=lowerLine, LEpos=[xLE, yLE], upperChord=upperChord, lowerChord=lowerChord, plot=False)
     print('>>> CAMBERLINE INTERPOLATION COST = {0:.3E}'.format(camberlineCost))
 
     # computing wedge angle 
@@ -1415,7 +1415,7 @@ def optimizeGeometry(
     lowDOFblade = Blade(stagger=stagger, metalIn=metalIn, metalOut=metalOut, chord=1.0, pitch=1.0, Asuct=Asuct, Apress=Apress, LEradius=LEradius, TEradius=TEradius, wedgeAngle=wedgeAngle, origin=True)
     
     # blade scaling and data allocation
-    Asuct, Apress, LEradius = lowDOFblade.scale(Nsuct=Nsuct, Npress=Npress, plot=True)
+    Asuct, Apress, LEradius = lowDOFblade.scale(Nsuct=Nsuct, Npress=Npress, plot=False)
     
     # setting up initial guess
     x = [
@@ -1437,7 +1437,7 @@ def optimizeGeometry(
         lowerLine,
         TEradius,
         nPoints,
-        True
+        False
     )
 
     # boundaries generation    
@@ -1485,7 +1485,6 @@ def optimizeGeometry(
 
         # getting from optimization's result
         _, _, _, bladeData, _, upperChord, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius, kind='linear')
-        # bladeData = rotate(bladeData, 0, resize=True)
         ax.plot(bladeData[:,0], bladeData[:,1], 'k', linewidth=5, label='RESULT.BLADE')
     
         # plotting coordinates
@@ -1501,10 +1500,10 @@ def optimizeGeometry(
         if not save:
             plt.show()
 
-        bladeData = rotate(bladeData, -angle, resize=False )
+        bladeData = rotate(bladeData, -angle, resize=False)
     else:
         fig = None 
-        _, _, _, bladeData, _, upperChord, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius)
+        _, _, _, bladeData, _, upperChord, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius, kind='linear')
         bladeData = rotate(bladeData, -angle, resize=False)
         
     return blade, kulfanParameters, bladeData, cost, fig, flip
