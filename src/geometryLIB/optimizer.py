@@ -1485,10 +1485,10 @@ def optimizeGeometry(
 
         # getting from optimization's result
         _, _, _, bladeData, _, upperChord, lowerChord, _ = bladeDataExtraction(xVal, Nsuct, Npress, TEradius=TEradius, kind='linear')
-        ax.plot(bladeData[:,0], bladeData[:,1], 'k', linewidth=5, label='RESULT.BLADE')
+        ax.plot(bladeData[:,0] / lowerChord, bladeData[:,1] / lowerChord, 'k', linewidth=5, label='RESULT.BLADE')
     
         # plotting coordinates
-        plotCoords(__data, ax, theta=0, resize=True, base=True)
+        plotCoords(__data, ax, theta=0, resize=False, base=True)
         
         ax.legend(bbox_to_anchor=(1,1), loc='upper left')
         ax.set_aspect('equal')
@@ -1518,7 +1518,7 @@ def optimizeBlade(
         nPoints:    int   = 100,
         method:     str   = 'Nelder-Mead',
         nMax:       int   = 2, 
-        tol:        float = 1.4e-4,
+        tol:        float = 1.2e-4,
         plot:       bool  = True,
         save:       bool  = False
     ) -> tuple[Blade, np.ndarray, np.ndarray, float, plt.Figure, float]:

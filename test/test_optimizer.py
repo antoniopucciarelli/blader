@@ -66,8 +66,7 @@ class TestOptimizer(unittest.TestCase):
                 print('>>> N PRESSURE SIDE = {0:d}'.format(Npress))
                 
                 # optimizing blade with respect to different DOF
-                # blade, kulfanParameters, bladeData, cost, fig, angle
-                _, _, _, _, fig, _ = optimizer.optimizeBlade(bladeCoords, Nsuct, Npress, angle=10, nMax=nMax, nPoints=nPoints, plot=True, save=False)
+                _, _, _, _, fig, _ = optimizer.optimizeBlade(bladeCoords, Nsuct, Npress, angle=0, nMax=nMax, nPoints=nPoints, plot=True, save=True)
                 pdf.savefig(figure=fig)
                 
         pdf.close()

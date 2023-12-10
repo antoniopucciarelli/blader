@@ -1,5 +1,6 @@
 {
     "fileName": [
+        "kulfanBased.dat",
         "GOE434.dat",
         "naca3715.dat",
         "upsideDown.dat",
@@ -9,8 +10,7 @@
     "'ok": [
         "naca9430.dat",
         "upsideDown.dat",
-        "symmetric.dat",
-        "kulfanBased.dat"
+        "symmetric.dat"
     ],
     "N": {
         "SS": [
