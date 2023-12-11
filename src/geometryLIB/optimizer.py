@@ -1271,6 +1271,7 @@ def optimizeGeometry(
         LEradius:  float = 2.5e-2, 
         nPoints:   int   = 100, 
         method:    str   = 'Nelder-Mead',
+        kind:      str   = 'linear',
         nMax:      int   = 2, 
         tol:       float = 1.4e-4,
         NsuctLow:  int   = 4, 
@@ -1344,7 +1345,7 @@ def optimizeGeometry(
         __data, _, _, _ = bladeInOrigin(__data, scale=True)
 
     # intepolating data 
-    upperLine, lowerLine, _, _, upperData, lowerData, upperChord, lowerChord = interpolateData(__data, plot=False)
+    upperLine, lowerLine, _, _, upperData, lowerData, upperChord, lowerChord = interpolateData(__data, plot=False, kind=kind)
 
     # leading edge position
     xLE, yLE, LEradius, axialChord = bladeLEpos(upperLine=upperLine, lowerLine=lowerLine, bothSide=False, plot=False)
@@ -1517,6 +1518,7 @@ def optimizeBlade(
         LEradius:   float = 2.5e-2, 
         nPoints:    int   = 100,
         method:     str   = 'Nelder-Mead',
+        kind:       str   = 'linear',
         nMax:       int   = 2, 
         tol:        float = 1.2e-4,
         plot:       bool  = True,
@@ -1575,7 +1577,7 @@ def optimizeBlade(
     '''
 
     if angle != 0: 
-        blade, kulfanParameters, bladeData, cost, fig, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+        blade, kulfanParameters, bladeData, cost, fig, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, method=method, kind=kind, nMax=nMax, tol=tol, plot=plot, save=save)
         print('>>> OPTIMIZATION COST = {0:+.3E}'.format(cost))
     else:
         # setting up initial data
@@ -1587,7 +1589,7 @@ def optimizeBlade(
             costTemp = cost
 
             # blade computation
-            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, method=method, nMax=nMax, tol=tol, plot=plot, save=save)
+            bladeTemp, kulfanParametersTemp, bladeDataTemp, cost, figTemp, flip = optimizeGeometry(data=data, Nsuct=Nsuct, Npress=Npress, angle=angle, LEradius=LEradius, nPoints=nPoints, method=method, kind=kind, nMax=nMax, tol=tol, plot=plot, save=save)
             
             print('>>> OPTIMIZING FOR THETA = {0:.2f}'.format(angle))
             print('>>> OPTIMIZATION COST    = {0:+.3E}'.format(cost))

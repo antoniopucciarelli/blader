@@ -56,34 +56,37 @@ class OptimizationFrame(ctk.CTkFrame):
             width         = 300,
             height        = 100,
             corner_radius = 10,
-            bg_color      = 'transparent'
+            # bg_color      = 'transparent'
         )
         self.frame.grid(row=0, column=0, rowspan=10, padx=0, pady=5, sticky='nwe')
     
         # image plotting
         self.loadButton = ctk.CTkButton(master=self.frame, text='LOAD DATA', command=self.getData, corner_radius=corner_radius)
-        self.loadButton.grid(row=0, column=0, pady=pady, padx=5, sticky='we')
+        self.loadButton.grid(row=0, column=0, columnspan=2, pady=pady, padx=5, sticky='we')
 
         # sliders 
         self.NsuctBox = FloatSpinbox(master=self.frame, logger=self.logger, label='SUCTION', width=270, step_size=1)
         self.NsuctBox.set(4)
-        self.NsuctBox.grid(row=1, column=0, pady=pady, padx=5)
+        self.NsuctBox.grid(row=1, column=0, columnspan=2, pady=pady, padx=5)
 
         self.NpressBox = FloatSpinbox(master=self.frame, logger=self.logger, label='PRESSURE', width=270, step_size=1)
         self.NpressBox.set(4)
-        self.NpressBox.grid(row=2, column=0, pady=pady, padx=5)
+        self.NpressBox.grid(row=2, column=0, columnspan=2, pady=pady, padx=5)
 
         self.deltaAngleBox = FloatSpinbox(master=self.frame, logger=self.logger, label='DELTA ANGLE', width=270, step_size=1, minVal=1, maxVal=10)
         self.deltaAngleBox.set(1)
-        self.deltaAngleBox.grid(row=3, column=0, pady=pady, padx=5)
+        self.deltaAngleBox.grid(row=3, column=0, columnspan=2, pady=pady, padx=5)
+
+        self.switchBox = SwitchBox(master=self.frame, label='INTERPOLATION', logger=self.logger, values=["linear", "cubic"])
+        self.switchBox.grid(row=4, column=0, pady=pady, padx=5, sticky='we')
 
         # optimization button 
         self.optButton = ctk.CTkButton(master=self.frame, text='OPTIMIZE', command=self.optimize, corner_radius=corner_radius)
-        self.optButton.grid(row=4, column=0, pady=pady, padx=5, sticky='we')
+        self.optButton.grid(row=5, column=0, columnspan=2, pady=pady, padx=5, sticky='we')
 
         # save button 
         self.saveButton = ctk.CTkButton(master=self.frame, text='SAVE', command=self.save, corner_radius=corner_radius)
-        self.saveButton.grid(row=5, column=0, pady=pady, padx=5, sticky='we')
+        self.saveButton.grid(row=6, column=0, columnspan=2, pady=pady, padx=5, sticky='we')
 
         # chart 
         self.plotCoordinates(row=0, column=1)
@@ -100,7 +103,7 @@ class OptimizationFrame(ctk.CTkFrame):
         self.logger.info('>>> optimizing {0} into Kulfan parameters'.format(self.fileName))
 
         # optimizing blade
-        self.blade, self.kulfanParameters, self.bladeData, cost, _, angle = optimizer.optimizeBlade(self.bladeCoords, self.NsuctBox.value, self.NpressBox.value, deltaAngle=self.deltaAngleBox.value, nMax=self.nMax, nPoints=self.nPoints, plot=False, save=False)
+        self.blade, self.kulfanParameters, self.bladeData, cost, _, angle = optimizer.optimizeBlade(self.bladeCoords, self.NsuctBox.value, self.NpressBox.value, deltaAngle=self.deltaAngleBox.value, nMax=self.nMax, kind=self.switchBox.segementedButtonVar.get(), nPoints=self.nPoints, plot=False, save=False)
 
         # normalizing data
         if angle == 0:
@@ -108,7 +111,7 @@ class OptimizationFrame(ctk.CTkFrame):
         else:
             maxX           = max(self.bladeData[:,0])
             self.bladeData = self.bladeData / maxX 
-            
+
             # updating blade properties 
             deltaY = abs(self.bladeData[0,1] - self.bladeData[-1,1]) / 2 - abs(self.bladeCoords[0,1] - self.bladeCoords[-1,1]) / 2
             self.bladeData[:,1] = self.bladeData[:,1] - deltaY 
@@ -125,6 +128,7 @@ class OptimizationFrame(ctk.CTkFrame):
         self.logger.info('\t>>> Npress = {0:d}'.format(self.NpressBox.value))
         self.logger.info('\t>>> DELTA ANGLE = {0:d}'.format(self.deltaAngleBox.value))
         self.logger.info('\t>>> ANGLE = {0:.3f}'.format(angle))
+        self.logger.info('\t>>> KIND = {0}'.format(self.switchBox.segementedButtonVar.get()))
         self.logger.info('\t>>> cost = {0:.3E}'.format(cost))
         self.blade.printout(logger=self.logger)
         
@@ -276,6 +280,34 @@ class MyHandlerText(logging.StreamHandler):
         self.flush()
         self.textctrl.configure(state="disabled")
 
+class SwitchBox(ctk.CTkFrame):
+    def __init__(
+            self,
+            master:     ctk.CTkFrame,
+            label:      str,
+            logger:     logging.Logger,
+            values:     list,
+            width:      int          = 300,
+            height:     int          = 32
+        ) -> None:
+
+        super().__init__(master=master, width=width, height=height)
+
+        self.logger = logger
+
+        self.grid_columnconfigure((0, 2), weight=0) 
+        self.grid_columnconfigure(1, weight=1)      
+
+        self.labelInterp = ctk.CTkLabel(self, width=width - height*3, text=label, bg_color='transparent')
+        self.labelInterp.grid(row=0, column=0, padx=(0, 3), pady=3, sticky='nw')
+
+        self.segementedButtonVar = ctk.StringVar(value=values[0])
+        self.segementedButton = ctk.CTkSegmentedButton(self, values=values, variable=self.segementedButtonVar, bg_color='transparent')
+        self.segementedButton.grid(row=0, column=1, padx=(0, 3), pady=3, sticky='nwe')
+
+    def switch_callback(self):
+        self.logger.info('>>> switching interpolation properties to {0}'.format(self.segementedButtonVar.get()))
+
 class FloatSpinbox(ctk.CTkFrame):
     def __init__(
             self,
@@ -291,8 +323,9 @@ class FloatSpinbox(ctk.CTkFrame):
             command                  = None,
         ) -> None:
 
-        super().__init__(master=master, width=width, height=height, bg_color='transparent')
+        super().__init__(master=master, width=width, height=height)
         
+        # setting up variables
         self.labelString = label
         self.logger      = logger
         self.step_size   = step_size
@@ -302,10 +335,10 @@ class FloatSpinbox(ctk.CTkFrame):
         self.minVal      = minVal 
         self.maxVal      = maxVal
 
-        self.grid_columnconfigure((0, 2), weight=0) # buttons don't expand
-        self.grid_columnconfigure(1, weight=1)      # entry expands
+        self.grid_columnconfigure((0, 2), weight=0) 
+        self.grid_columnconfigure(1, weight=1)      
 
-        self.label = ctk.CTkLabel(self, width=width - height*3, text=label, bg_color='transparent')
+        self.label = ctk.CTkLabel(self, width=width - height*3, text=label)
         self.label.grid(row=0, column=0, columnspan=2, padx=10, pady=3)
 
         self.subtract_button = ctk.CTkButton(self, text="-", width=height, height=height, command=self.subtract_button_callback)
